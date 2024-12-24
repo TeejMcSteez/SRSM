@@ -42,7 +42,8 @@ server.post("/login", async (req, res) => {
     
     if (valid.success) {
         console.log("User is validated");
-
+        // Add sessionId variable to assing to the cookie response
+        const sessionId = ;//timestamp + uuid
         res.cookie("sessionId", sessionId, { httpOnly: true, secure: false});
 
         res.json({ success:true });
