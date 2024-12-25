@@ -1,5 +1,6 @@
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
+const bcrypt = require('bcrypt');
 
 /*
 URI and Configuration example . . .
@@ -45,14 +46,14 @@ class AuthService {
             if (!user) {
                 return {valid: false, reason: 'User does not exist'};
             }
-
-            if (user.password !== password) {
+            const isValid = await bcrypt.compare(password, user.pwd);
+            if (!isValid) {
                 return {valid: false, reason: 'Invalid password.'};
             }
 
             return {valid: true, user};
         } catch (error) {
-            console.error(`Error validating user: ${error}`);
+            console.error(`Error validating user: ${error.message}`);
             throw error;
         }
     }

@@ -93,8 +93,9 @@
 
         if (response.ok) {
           const data = await response.json();
+          sessionStorage.setItem('authToken', data.token);
           alert('Login successful! Redirecting...');
-          window.location.href = '/protected/index.html'; // Redirect to your main page
+          window.location.href = data.redirect; // Redirect to your main page
         } else {
           const error = await response.json();
           alert(`Error: ${error.message}`);
