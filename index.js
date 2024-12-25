@@ -45,11 +45,11 @@ const authService = new AuthService(uri, options);
 const verifyToken = (req, res, next) => {
     // This is getting the token from session storage via the auth header 
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN format
+    const token = authHeader && authHeader.split(' ')[1]; // ensures truthy header and splits into Bearer TOKEN format
 
-    const queryToken = req.query.token;
+    const queryToken = req.query.token; // If token is in the query header after login uses that.
 
-    const tokenToVerify = token || queryToken;
+    const tokenToVerify = token || queryToken; // Uses either valid token from login query or from protected routes custom headers
 
     if (!tokenToVerify) {
         res.redirect('/login');
