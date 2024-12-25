@@ -13,6 +13,8 @@ const options = {
 };
 */ 
 
+const USER_DATABASE = process.env.USER_DATABASE;
+
 class AuthService {
     constructor(uri, options = {}) {
         this.uri = uri;
@@ -41,7 +43,7 @@ class AuthService {
         }
 
         try {
-            const user = await this.db.collection('UserDatabase').findOne({username});
+            const user = await this.db.collection(USER_DATABASE).findOne({username});
 
             if (!user) {
                 return {valid: false, reason: 'User does not exist'};

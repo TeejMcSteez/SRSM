@@ -10,6 +10,8 @@ const server = express(); //Namespace for express call
 const bcrypt = require('bcrypt');
 const id = require('uuid');
 const jwt = require('jsonwebtoken');
+const system = require('./utils/system.js');
+const fileManager = require('./utils/readFiles.js');
 
 server.use(express.json());
 server.use(express.urlencoded({ extended: true })); // for form-encoded data?
@@ -17,16 +19,18 @@ server.use(express.urlencoded({ extended: true })); // for form-encoded data?
 const HOSTNAME = process.env.HOSTNAME;
 const PORT = process.env.PORT;
 
-const MONGO_USERNAME = process.env.USERNAME;
-const MONGO_PASSWORD = process.env.PASSWORD;
+const CPU_TEMPERATURE_DIRECTORY = process.env.CPU_TEMPERATURE_DIRECTORY; // CPU Temp Directory
+const MOTHERBOARD_DIRECTORY = process.env.MOTHERBOARD_DIRECTORY; // Motherboard IO Directory
+
+const MONGO_USERNAME = process.env.USERNAME; // Might not be needed with $external
+const MONGO_PASSWORD = process.env.PASSWORD; // Might not be needed with $external
 const MONGODB_HOST = process.env.MONGODB_HOST;
-const USER_DATABASE = process.env.USER_DATABASE;
 
 const CLIENT_KEY_PATH = process.env.CLIENT_KEY_PATH;
 const CA_PATH = process.env.CA_PATH;
 
-const JWT_SECRET = process.env.JWT_PRIVATE_KEY;
-const JWT_TEST = process.env.JWT_PUBLIC_KEY;
+const JWT_SECRET = fs.readFileSync(process.env.SECRET_PATH);
+const JWT_PUB = fs.readFileSync(process.env.JWT_PATH);
 
 const uri = `mongodb://${MONGODB_HOST}:27017/?authMechanism=MONGODB-X509`; //27017 is the default port for mongodb
 const options = {
@@ -52,7 +56,7 @@ const verifyToken = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(tokenToVerify, JWT_TEST, {algorithms: ['RS256'] });
+        const decoded = jwt.verify(tokenToVerify, JWT_PUB, {algorithms: ['RS256'] });
         req.user = decoded; // Adding user info to request object
         next();
     } catch (error) {
@@ -61,6 +65,7 @@ const verifyToken = (req, res, next) => {
     }
 };
 
+// Start of client
 server.use("/protected", verifyToken, express.static(path.join(__dirname, "public")));
 
 server.get("/login", (req, res) => {
@@ -78,7 +83,7 @@ server.post("/login", async (req, res) => {
         if (valid.success) {
             console.log("User is validated");
         
-            const token = jwt.sign({TempUID: Date.now() + id.v4()}, JWT_SECRET, {algorithm: 'RSA256', expiresIn: '1h'});
+            const token = jwt.sign({UID: Date.now() + id.v4()}, JWT_SECRET, {algorithm: 'RSA256', expiresIn: '1h'});
             sessionStorage.setItem('authToken', token);
 
             res.json({ success:true, token, redirect: '/?token=' + token });
@@ -99,6 +104,70 @@ server.get('/', verifyToken, async (req, res) => {
     res.sendFile(path.join(__dirname, 'public/protected', 'index.html'));
 });
 
+// API's
+server.get('/api/temperatures', verifyToken, async (req, res) => {
+    try {
+        const contents = await fileManager.readFolder(CPU_TEMPERATURE_DIRECTORY);
+
+        const tempFiles = fileManager.findTemperatureFiles(contents);
+
+       const readingsPromise =  await Promise.all(tempFiles.map(file => fileManager.findValues(CPU_TEMPERATURE_DIRECTORY, file.LABEL)));
+
+       const readings = await Promise.all(readingsPromise);
+
+       const convertedReadings = system.convert(readings);
+
+        // sends each converted readings value as a json response
+        // Only converts temperature and millivolts currently otherwise returns the data sent to it
+        res.json(convertedReadings);
+
+    } catch (error) {
+        console.error(`Error fetching temperatures ${error.message}`);
+        res.status(500).json({error: 'Could not fetch temperatures'});
+    }
+});
+
+server.get('/api/motherboard', verifyToken, async (req, res) => {
+    try {
+        const contents = await fileManager.readFolder(MOTHERBOARD_DIRECTORY);
+
+        const tempFiles = fileManager.findMotherboardFiles(contents);
+
+        const readingsPromise = await Promise.all(tempFiles.map(file => fileManager.findValues(MOTHERBOARD_DIRECTORY, file.LABEL)));
+
+        const readings = await Promise.all(readingsPromise);
+
+        const convertedReadings = system.convert(readings);
+
+        res.json(convertedReadings);
+        
+    } catch (error) {
+        console.error(`Error fetching motherboard values: ${error.message}`);
+        res.status(500).json({error: `Could not fetch temperature values`});
+    }
+});
+
+server.get('/api/chartInformation', verifyToken, async (req, res) => {
+    const memoryInformation = [system.getCurrentMemory(), system.getTotalMemory()];
+
+    res.json(memoryInformation);
+});
+
+server.get('/api/uptime', verifyToken, async (req, res) => {
+    const uptime = system.getUptime();
+
+    const uptimeSplit = system.splitUptime(uptime);
+
+    res.json(uptimeSplit);
+});
+
+server.get('/api/loadAvg', verifyToken, (req, res) => {
+    const loadAvg = system.getLoadAvg();
+
+    res.json(loadAvg);
+}); 
+
+// Starting server
 server.listen(PORT, () => {
     console.log(`Server running at http://${HOSTNAME}:${PORT}`);
 });
