@@ -1,19 +1,19 @@
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
+require('dotenv').config();
 
 /*
 URI and Configuration example . . .
-const uri = 'mongodb://<your-host>:27017/AuthDatabase';
+const uri = `mongodb://${MONGODB_HOST}:27017/?authMechanism=MONGODB-X509`; //27017 is the default port for mongodb
 const options = {
-  sslKey: fs.readFileSync('/path/to/client.pem'),
-  sslCert: fs.readFileSync('/path/to/client.pem'),
-  sslCA: fs.readFileSync('/path/to/ca.pem'),
-  useUnifiedTopology: true,
+    tls: true,
+    tlsCertificateKeyFile: CLIENT_KEY_PATH,
+    tlsCAFile: CA_PATH
 };
 */ 
 
-const USER_DATABASE = process.env.USER_DATABASE;
+const COLLECTION = process.env.USER_DATABASE;
 
 class AuthService {
     constructor(uri, options = {}) {
@@ -37,18 +37,21 @@ class AuthService {
         }
     }
 
-    async validateUser(username, password) {
+    async validateUser(USERNAME, password) {
         if (!this.db) {
             throw new Error('Database not initialized. Call connect() first');
         }
-
+        const trimmedUsername = USERNAME.trim();
         try {
-            const user = await this.db.collection(USER_DATABASE).findOne({username});
-
+            console.log('Searching for user . . .');
+            const user = await this.db.collection(COLLECTION).findOne({username: trimmedUsername});
+            console.log(`Returned: ${user.username}`);
             if (!user) {
                 return {valid: false, reason: 'User does not exist'};
             }
-            const isValid = await bcrypt.compare(password, user.pwd);
+            const isValid = bcrypt.compare(password, user.pwd);
+            console.log(`Bcrypt verification: ${(await isValid).valueOf()}`);
+
             if (!isValid) {
                 return {valid: false, reason: 'Invalid password.'};
             }

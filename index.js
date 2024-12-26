@@ -1,29 +1,31 @@
 // When I get back to the server I need to setup $external users to be able to interact with the Auth user database
 // I also need to make a way to manager user cookie authentication, whether that be server side or storing something on the program idk yet
 // Also need to generate public and private keys for json web token validation
-const AuthService = require('./utils/auth.js');
-const express = require('express');
-require('dotenv').config();
+// Built in packages
 const fs = require("node:fs");
-const path = require('path');
+const path = require('node:path');
+// Installed Packages
+require('dotenv').config();
+const express = require('express');
 const server = express(); //Namespace for express call
-const bcrypt = require('bcrypt');
 const id = require('uuid');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+// Utilitys
 const system = require('./utils/system.js');
 const fileManager = require('./utils/readFiles.js');
-
+const AuthService = require('./utils/auth.js');
+// Specifying what API's to use for express responses
 server.use(express.json());
 server.use(express.urlencoded({ extended: true })); // for form-encoded data?
-
+server.use(cookieParser());
+// Enviroment Variables
 const HOSTNAME = process.env.HOSTNAME;
 const PORT = process.env.PORT;
 
 const CPU_TEMPERATURE_DIRECTORY = process.env.CPU_TEMPERATURE_DIRECTORY; // CPU Temp Directory
 const MOTHERBOARD_DIRECTORY = process.env.MOTHERBOARD_DIRECTORY; // Motherboard IO Directory
 
-const MONGO_USERNAME = process.env.USERNAME; // Might not be needed with $external
-const MONGO_PASSWORD = process.env.PASSWORD; // Might not be needed with $external
 const MONGODB_HOST = process.env.MONGODB_HOST;
 
 const CLIENT_KEY_PATH = process.env.CLIENT_KEY_PATH;
@@ -31,7 +33,7 @@ const CA_PATH = process.env.CA_PATH;
 
 const JWT_SECRET = fs.readFileSync(process.env.SECRET_PATH);
 const JWT_PUB = fs.readFileSync(process.env.JWT_PATH);
-
+// Instantiation of mongodb client service
 const uri = `mongodb://${MONGODB_HOST}:27017/?authMechanism=MONGODB-X509`; //27017 is the default port for mongodb
 const options = {
     tls: true,
@@ -43,10 +45,8 @@ const authService = new AuthService(uri, options);
 
 // Middleware to verify JWT tokens
 const verifyToken = (req, res, next) => {
-    // This is getting the token from session storage via the auth header 
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // ensures truthy header and splits into Bearer TOKEN format
-
+    const token = req.cookies.authToken;
+    
     const queryToken = req.query.token; // If token is in the query header after login uses that.
 
     const tokenToVerify = token || queryToken; // Uses either valid token from login query or from protected routes custom headers
@@ -67,11 +67,11 @@ const verifyToken = (req, res, next) => {
 
 // Start of client
 server.use("/protected", verifyToken, express.static(path.join(__dirname, "public")));
-
+// Unprotected login route
 server.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
-
+// On POST with user info verifies and signs
 server.post("/login", async (req, res) => {
     console.log(req.body);
     const { username, password } = await req.body;
@@ -79,17 +79,22 @@ server.post("/login", async (req, res) => {
         await authService.connect();
 
         const valid = await authService.validateUser(username, password);
-        
-        if (valid.success) {
+        if (valid) {
             console.log("User is validated");
         
-            const token = jwt.sign({UID: Date.now() + id.v4()}, JWT_SECRET, {algorithm: 'RSA256', expiresIn: '1h'});
-            sessionStorage.setItem('authToken', token);
+            const token = jwt.sign({UID: Date.now() + id.v4()}, JWT_SECRET, {algorithm: 'RS256', expiresIn: '1h'});
 
-            res.json({ success:true, token, redirect: '/?token=' + token });
+            res.cookie('authToken', token, {
+                httpOnly: true,
+                secure: false,
+                sameSite: 'strict',
+                maxAge: 60 * 60 * 1000,
+            });
+
+            res.status(200).json({ success:true, redirect: '/?token=' + token });
 
         } else {
-            console.log("Invalid User");
+            console.log("Invalid Username or password");
             res.status(401).json({ message: valid.message || "Invalid username or password" });
         }
         await authService.close();
@@ -99,7 +104,7 @@ server.post("/login", async (req, res) => {
         await authService.close();
     }
 });
-
+// On root req checks for tokens and routes accordingly
 server.get('/', verifyToken, async (req, res) => {
     res.sendFile(path.join(__dirname, 'public/protected', 'index.html'));
 });

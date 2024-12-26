@@ -146,18 +146,10 @@
 
         async function startChart() {
             try {
-                const response = await fetch('/api/chartInformation', {
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-                    }
-                });
+                const response = await fetch('/api/chartInformation');
                 const chartInformation = await response.json();
 
-                const loadResponse = await fetch('/api/loadAvg', {
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-                    }
-                });
+                const loadResponse = await fetch('/api/loadAvg');
                 const loadAvg = await loadResponse.json();
 
                 const doughnutData = {
@@ -222,37 +214,21 @@
 
         async function updateValues() {
             try {
-                const chartResponse = await fetch('/api/chartInformation', {
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-                    }
-                });
+                const chartResponse = await fetch('/api/chartInformation');
                 const chartInformation = await chartResponse.json();
 
                 memoryDoughnut.data.datasets[0].data = [chartInformation[0], chartInformation[1]];
                 memoryDoughnut.update();
 
-                const loadResponse = await fetch('/api/loadAvg', {
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-                    }
-                });
+                const loadResponse = await fetch('/api/loadAvg');
                 const loadAvg = await loadResponse.json();
 
                 loadBar.data.datasets[0].data = [loadAvg[0], loadAvg[1], loadAvg[2]];
                 loadBar.update();
 
                 const [tempResponse, motherboardResponse] = await Promise.all([
-                    fetch('/api/temperatures', {
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-                    }
-                }),
-                    fetch('/api/motherboard', {
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-                    }
-                })
+                    fetch('/api/temperatures'),
+                    fetch('/api/motherboard')
                 ]);
 
                 const temperatures = await tempResponse.json();
@@ -311,11 +287,7 @@
                     }
                 });
 
-                const uptimeResponse = await fetch('/api/uptime', {
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-                    }
-                });
+                const uptimeResponse = await fetch('/api/uptime');
                 const uptime = await uptimeResponse.json();
 
                 const uptimeHolder = document.getElementById('uptimeHolder');

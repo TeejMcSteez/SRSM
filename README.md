@@ -10,10 +10,14 @@
 - Bcrypt (To compare hashed DB values)
 - jsonwebtoken (for session management)
 - dotenv
+---
+Install with `npm i express uuid bcrypt jsonwebtoken dotenv`
+---
 ## The dotenv file will need to contain information for:
-- Hostname/Port for express
+- Hostname & Port (for express server listener)
 - Directories for CPU and Motherboard readings values
-- Mongodb Hostname 
-- Certificate and private key path for mongodb connection 
-- Private and public key path for JWT verification
+- Mongodb Hostname and user database name
+- Certificate and private key path (for mongodb connection)
+- Private & public key path (for JWT verification)
+---
 **It is not fully secure** there still needs to be better practices such as HTTP secure cookies and not using sessionStorage but this is a start.  
