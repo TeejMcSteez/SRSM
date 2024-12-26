@@ -1,6 +1,3 @@
-// When I get back to the server I need to setup $external users to be able to interact with the Auth user database
-// I also need to make a way to manager user cookie authentication, whether that be server side or storing something on the program idk yet
-// Also need to generate public and private keys for json web token validation
 // Built in packages
 const fs = require("node:fs");
 const path = require('node:path');
