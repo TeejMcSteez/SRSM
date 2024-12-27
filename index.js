@@ -8,14 +8,13 @@ const server = express(); //Namespace for express call
 const id = require('uuid');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const https = require('https');
+const redirectToHTTPS = require('express-http-to-https').redirectToHTTPS;
 // Utilitys
 const system = require('./utils/system.js');
 const fileManager = require('./utils/readFiles.js');
 const AuthService = require('./utils/auth.js');
-// Specifying what API's to use for express responses
-server.use(express.json());
-server.use(express.urlencoded({ extended: true })); // for form-encoded data?
-server.use(cookieParser());
+
 // Enviroment Variables
 const HOSTNAME = process.env.HOSTNAME;
 const PORT = process.env.PORT;
@@ -23,15 +22,25 @@ const PORT = process.env.PORT;
 const CPU_TEMPERATURE_DIRECTORY = process.env.CPU_TEMPERATURE_DIRECTORY; // CPU Temp Directory
 const MOTHERBOARD_DIRECTORY = process.env.MOTHERBOARD_DIRECTORY; // Motherboard IO Directory
 
-const MONGODB_HOST = process.env.MONGODB_HOST;
+const MONGO_URI = process.env.MONGODB_URI
 
 const CLIENT_KEY_PATH = process.env.CLIENT_KEY_PATH;
 const CA_PATH = process.env.CA_PATH;
 
 const JWT_SECRET = fs.readFileSync(process.env.SECRET_PATH);
 const JWT_PUB = fs.readFileSync(process.env.JWT_PATH);
+
+const HTTPS_KEY = fs.readFileSync(process.env.HTTPS_KEY_PATH);
+const HTTPS_CERT = fs.readFileSync(process.env.HTTPS_CERT_PATH);
+
+// Specifying what API's to use for express responses
+server.use(redirectToHTTPS([HOSTNAME], [], 301));
+server.use(express.json());
+server.use(express.urlencoded({ extended: true })); // for form-encoded data?
+server.use(cookieParser());
+
 // Instantiation of mongodb client service
-const uri = `mongodb://${MONGODB_HOST}:27017/?authMechanism=MONGODB-X509`; //27017 is the default port for mongodb
+const uri = MONGO_URI; //27017 is the default port for mongodb
 const options = {
     tls: true,
     tlsCertificateKeyFile: CLIENT_KEY_PATH,
@@ -39,17 +48,20 @@ const options = {
 };
 
 const authService = new AuthService(uri, options);
+// HTTPS config 
+const httpsServer = https.createServer({
+    key: HTTPS_KEY,
+    cert: HTTPS_CERT
+}, server);
 
 // Middleware to verify JWT tokens
 const verifyToken = (req, res, next) => {
     const token = req.cookies.authToken;
-    
     const queryToken = req.query.token; // If token is in the query header after login uses that.
-
-    const tokenToVerify = token || queryToken; // Uses either valid token from login query or from protected routes custom headers
+    const tokenToVerify = token || queryToken; // Uses either valid token from login query or valid token from cookies
 
     if (!tokenToVerify) {
-        res.redirect('/login');
+        return res.redirect('/login');
     }
 
     try {
@@ -58,7 +70,8 @@ const verifyToken = (req, res, next) => {
         next();
     } catch (error) {
         console.error(`Token Verification Failed: ${error.message}`);
-        return res.status(403).json({ message: 'Invalid or expired token'});
+        res.clearCookie('authToken');
+        return res.redirect('/login');
     }
 };
 
@@ -70,7 +83,6 @@ server.get("/login", (req, res) => {
 });
 // On POST with user info verifies and signs
 server.post("/login", async (req, res) => {
-    console.log(req.body);
     const { username, password } = await req.body;
     try {
         await authService.connect();
@@ -83,7 +95,7 @@ server.post("/login", async (req, res) => {
 
             res.cookie('authToken', token, {
                 httpOnly: true,
-                secure: false,
+                secure: true,
                 sameSite: 'strict',
                 maxAge: 60 * 60 * 1000,
             });
@@ -167,9 +179,9 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
     const loadAvg = system.getLoadAvg();
 
     res.json(loadAvg);
-}); 
+});
 
 // Starting server
-server.listen(PORT, () => {
-    console.log(`Server running at http://${HOSTNAME}:${PORT}`);
+httpsServer.listen(PORT, () => {
+    console.log(`Server running at https://${HOSTNAME}:${PORT}`);
 });
