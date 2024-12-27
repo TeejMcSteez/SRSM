@@ -88,7 +88,8 @@ server.post("/login", async (req, res) => {
         await authService.connect();
 
         const valid = await authService.validateUser(username, password);
-        if (valid) {
+
+        if (valid.valid) {
             console.log("User is validated");
         
             const token = jwt.sign({UID: Date.now() + id.v4()}, JWT_SECRET, {algorithm: 'RS256', expiresIn: '1h'});
@@ -103,7 +104,7 @@ server.post("/login", async (req, res) => {
             res.status(200).json({ success:true, redirect: '/?token=' + token });
 
         } else {
-            console.log("Invalid Username or password");
+            console.log(`Reason: ${valid.reason}`);
             res.status(401).json({ message: valid.message || "Invalid username or password" });
         }
         await authService.close();

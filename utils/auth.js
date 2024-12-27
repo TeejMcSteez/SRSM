@@ -1,3 +1,4 @@
+// TODO: Replace password comparison when I fix password values on the database
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
@@ -49,14 +50,23 @@ class AuthService {
             if (!user) {
                 return {valid: false, reason: 'User does not exist'};
             }
-            const isValid = bcrypt.compare(password, user.pwd);
-            console.log(`Bcrypt verification: ${(await isValid).valueOf()}`);
+            // In prod I need to replace my database password when encrypted passwords to compare with bcrypt
+            // const isValid = (await bcrypt.compare(password, user.pwd));
+            let isValid = false;
+            if (password === user.pwd) {
+                isValid = true;
+            } else {
+                isValid = false;
+            }
 
-            if (!isValid) {
+            console.log(`Bcrypt verification: ${(isValid)}`);
+
+            if (isValid) {
+                return {valid: true, user};
+            } else {
                 return {valid: false, reason: 'Invalid password.'};
             }
 
-            return {valid: true, user};
         } catch (error) {
             console.error(`Error validating user: ${error.message}`);
             throw error;
