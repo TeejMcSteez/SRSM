@@ -1,8 +1,6 @@
 # Secure Remote Web Sever #
 ### Using MongoDB and JWT to authenticate user sessions and manage them for logins to view remote web server information. 
 ---
-### My hope is to be able to implement user authentication on my HTTP/HTTPS apps I use with this database setup as well as ensure that only the people I want to access my server will. 
----
 ## Packages:
 - Node/npm (Using path and fs built in packages)
 - Express 
@@ -10,8 +8,9 @@
 - Bcrypt (To compare hashed DB values)
 - jsonwebtoken (for session management)
 - dotenv
+- Express-http-to-https (for http redirects) 
 ---
-Install with `npm i express uuid bcrypt jsonwebtoken dotenv`
+Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https`
 ---
 ## The dotenv file will need to contain information for:
 - Hostname & Port (for express server listener)
@@ -20,4 +19,4 @@ Install with `npm i express uuid bcrypt jsonwebtoken dotenv`
 - Certificate and private key path (for mongodb connection)
 - Private & public key path (for JWT verification)
 ---
-**It is not fully secure** there still needs to be better practices such as HTTP secure cookies and not using sessionStorage but this is a start.  
+**It is not fully secure** there is still plenty of work to be done . . . but this is a start and man is it cool and fun
