@@ -7,12 +7,12 @@ env_file='.env'
 
 echo 'Starting build . . .'
 
-echo 'Please enter the hostname for the HTTPS server'
+echo 'Please enter the hostname for the HTTPS server (Example: localhost, 127.0.0.1, 192.168.1.1). . .'
 read HOSTNAME
 echo 'Please enter the port for the server to listen on . . .'
 read PORT
 
-echo 'Building node . . .'
+echo 'Building node enviroment and packages. . .'
 
 npm init -y 
 echo "NPM initialized installing packages"
@@ -75,27 +75,27 @@ echo "HOSTNAME=$HOSTNAME" >> "$env_file"
 echo "PORT=$PORT" >> "$env_file"
 
 echo "Please enter paths for certificates and keys (Example: ./src/crts/CA.crt) . . ."
-echo "Enter HTTPS Key Path . . ."
+echo "Enter HTTPS Key Path (Example: ./src/https/private.key) . . ."
 read HTTPS_KEY_PATH
 echo "HTTPS_KEY_PATH = $HTTPS_KEY_PATH" >> "$env_file"
 
-echo "Enter HTTPS Certificate Path . . ."
+echo "Enter HTTPS Certificate Path (Example: ./src/https/server.crt). . ."
 read HTTPS_CERT_PATH
 echo "HTTPS_CERT_PATH=$HTTPS_CERT_PATH" >> "$env_file"
 
-echo "Enter Json Web Token Key Path . . ."
+echo "Enter Json Web Token Key Path (Example: ./src/jwt/private.key). . ."
 read SECRET_PATH
 echo "SECRET_PATH = $SECRET_PATH" >> "$env_file"
 
-echo "Enter Json Web Token Certificate Path . . ."
+echo "Enter Json Web Token Certificate Path (Example: ./src/jwt/public.key) . . ."
 read JWT_PATH
 echo "JWT_PATH = $JWT_PATH" >> "$env_file"
 
-echo "Enter MongoDB Client Key Path . . ."
+echo "Enter MongoDB Client Key Path (Example: ./src/mongo/client.pem). . ."
 read CLIENT_KEY_PATH
 echo "CLIENT_KEY_PATH = $CLIENT_KEY_PATH"
 
-echo "Enter MongoDB Certificate Path . . ."
+echo "Enter MongoDB Certificate Path (Example: ./src/mongo/ca.crt). . ."
 read CA_PATH
 echo "CA_PATH = $CA_PATH" >> "$env_file"
 
@@ -124,4 +124,4 @@ cd ..
 
 echo -e "\nRepo pulled, build successful . . ."
 echo -e "\nHTTPS, JWT, and MongoDB credentials directories still needed to be populated in src! . . .\n"
-echo "Delete this build file!"
+echo -e "\n!*!*!*!*!*!*!*!*!*!*!*!*\nDelete this build file!\n!*!*!*!*!*!*!*!*!*!*!*!"
