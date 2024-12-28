@@ -13,7 +13,7 @@
 - Pino (Logging)
 - Helmet
 ---
-Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet`
+Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet express-validator`
 ---
 ## The dotenv file will need to contain information for:
 - Hostname & Port (for express server listener)

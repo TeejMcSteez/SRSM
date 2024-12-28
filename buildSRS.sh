@@ -17,7 +17,7 @@ echo 'Building node enviroment and packages. . .'
 
 npm init -y 
 echo "NPM initialized installing packages"
-npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet
+npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet express-validator
 echo "Packages installed starting file detection . . ."
 
 for dir in "$hwmon"/*; do

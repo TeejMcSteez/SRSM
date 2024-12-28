@@ -1,5 +1,20 @@
+/**
+ * @fileoverview AuthService Class for MongoDB-based user authentication.
+ * @description
+ *  The AuthService handles the following tasks:
+ *   - Connecting to a MongoDB database with TLS.
+ *   - Validating user credentials.
+ *   - Closing the database connection.
+ * 
+ *  Security considerations:
+ *   - Ensure that passwords are hashed and compared with bcrypt.
+ *   - Avoid logging sensitive data like plaintext passwords or secrets.
+ *   - Use environment variables and secure file permissions for credentials.
+ * 
+ * @version 1.0.0
+ * @since 2024-12-28
+ */
 const { MongoClient } = require('mongodb');
-const fs = require('fs');
 const bcrypt = require('bcrypt');
 const logger = require('pino')();
 require('dotenv').config();
@@ -7,18 +22,29 @@ require('dotenv').config();
 const COLLECTION = process.env.USER_DATABASE;
 /**
  * Connects, Validates, and Closes Mongodb database of users 
+ * 
+ * @class
  */
 class AuthService {
     /**
-    * URI and Configuration example . . .
-    * const uri = `mongodb://${MONGODB_HOST}:27017/?authMechanism=MONGODB-X509`; //27017 is the default port for mongodb
-    * `const options = {
-    *     tls: true,
-    *     tlsCertificateKeyFile: CLIENT_KEY_PATH,
-    *     tlsCAFile: CA_PATH
-    * };`
-    * `const authService = new AuthService(uri, options);`
-    */ 
+     * Creates an instance of AuthService.
+     * 
+     * @param {string} uri - The MongoDB connection URI.
+     * @param {object} [options={}] - Additional MongoDB client options.
+     * @property {string} this.uri - The MongoDB URI stored for later connection.
+     * @property {object} this.options - Configuration object for TLS, timeouts, etc.
+     * @property {?MongoClient} this.client - The MongoDB client instance (once connected).
+     * @property {?object} this.db - The connected MongoDB database instance.
+     * 
+     * @example
+     * const uri = 'mongodb://myMongoHost:27017/?authMechanism=MONGODB-X509';
+     * const options = {
+     *     tls: true,
+     *     tlsCertificateKeyFile: '/path/to/client.pem',
+     *     tlsCAFile: '/path/to/ca.pem'
+     * };
+     * const authService = new AuthService(uri, options);
+     */
     constructor(uri, options = {}) {
         this.uri = uri;
         this.options = options;
@@ -27,6 +53,13 @@ class AuthService {
     }
     /**
      * Connects to Mongodb and instantiates client to use
+     * 
+     * @async 
+     * @throws {Error}
+     * @returns {Promise<void>}
+     * 
+     * @example
+     * await authService.connect();
      */
     async connect() {
         if (this.client) return;
@@ -46,7 +79,16 @@ class AuthService {
      * CALL CONNECT FIRST!
      * @param {String} USERNAME 
      * @param {String} password 
-     * @returns {Object[valid: Boolean, reason: String]} - Returns object with validation boolean and reason for validation choice
+     * @throws {Error} if no client is connected throws error
+     * @returns {Promise<{ valid: boolean, reason?: string, user?: object }>} - Returns object with validation boolean and reason for validation choice
+     * 
+     * @example 
+     * const result = await authService.validateUser('alice', 'securePassword');
+     * if (result.valid) {
+     *   console.log('User is valid:', result.user);
+     * } else {
+     *   console.log('Validation failed:', result.reason);
+     * }
      */
     async validateUser(USERNAME, password) {
         if (!this.db) {
@@ -85,6 +127,12 @@ class AuthService {
     }
     /**
      * Closes session THIS IS NECESSARY! Otherwise client will leave unclosed sessions on server
+     * 
+     * @async 
+     * @returns {Promise<void>}
+     * 
+     * @example
+     * await authService.close();
      */
     async close() {
         if (this.client) {
@@ -95,7 +143,4 @@ class AuthService {
         }
     }
 }
-/**
- * Auth Service Class for Mongodb User Authentication
- */
 module.exports = AuthService;

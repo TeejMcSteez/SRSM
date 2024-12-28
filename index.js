@@ -1,25 +1,50 @@
 /**
- * TODO:
- * HIGH PRIORITY:
- *  - Error handling and information disclosure (instead of console.log use a more secure way to display messages) ✔️
- *       + Logging with Pino ✔️
- *       + Better Error Handling 
- *   - JWT Token Content (add object names for specific information to make it more legible) ✔️
- *   - Mongodb Security
- *       + add connection error handling ✔️
- *       + implement connection pooling (max number of connections) ✔️
- *       + add timeout settings ✔️
- * Medium priority:
- *   - Add input validatin for login creds (sanitation)
- *   - Add security headers (Removes sensitive information) ✔️
- *   - Implement session termination endpoints (logout)
- * low priority:
- *   - Add seperate limits for login attempts (implementing middleware within the function call for GET and POSTs)
- *   - API Documentation for the packages I made 
- *   - Implement CSRF Protection 
- *   - Add request login (maybe)
- *   - Implement API Versioning ✔️ (Used JSDoc Standards)
-*/
+ * @fileoverview Security Audit Summary for index.js (By GPT o1)
+ * @description
+ *  This file defines an Express-based Node.js server with HTTPS support, rate limiting,
+ *  JWT-based authentication, and MongoDB connectivity. Below is a high-level security review
+ *  summarizing potential risks and recommended enhancements:
+ *
+ *  1. Token Handling
+ *     - @notice Using query parameters (req.query.token) for JWT tokens can inadvertently
+ *       expose tokens in logs and browser history. Prefer cookies or Authorization headers.
+ *     - @notice Clearing token variables (token = null, tokenToVerify = null) helps minimize
+ *       the window of exposure in memory, but does not guarantee immediate garbage collection.
+ *
+ *  2. Input Validation & Sanitization ✔️ @notice Used express-validator to validate username and pwd input
+ *     - @notice Validate and sanitize all user-provided data (e.g., username, password).
+ *       This prevents injection attacks and ensures the data meets expected formats.
+ *     - @recommendation Consider using express-validator or Joi for structured validation.
+ *
+ *  3. MongoDB Security ✔️ @notice Implemented global error handling for failures on the backend
+ *     - @notice TLS, connection pooling, and timeouts are configured. Ensure least-privilege
+ *       MongoDB user permissions. 
+ *     - @recommendation Use try-catch blocks (or a global error handler) to avoid detailed
+ *       error leakage.
+ *
+ *  4. Express & Middleware
+ *     - @notice Helmet is configured with CSP and HSTS, which is good for preventing
+ *       some common attacks. Adjust the directives carefully if you add external scripts.
+ *     - @notice Rate limiting is in place. Fine-tune thresholds for login routes to
+ *       mitigate brute-force attacks.
+ *     - @recommendation Implement CSRF protection if you accept form data that modifies
+ *       server-side state.
+ *
+ *  5. Logging & Error Handling ✔️ (Added global error handling to the script)
+ *     - @notice Using Pino to handle structured logging. Avoid logging tokens, passwords,
+ *       or other secrets. 
+ *     - @recommendation Add a global error-handling middleware to catch unhandled exceptions
+ *       and return a generic error to the client. ✔️
+ *
+ *  6. Miscellaneous
+ *     - @notice Store certificates and keys with strict file permissions (e.g., chmod 600).
+ *     - @recommendation Provide a logout or session termination route to invalidate JWTs
+ *       on the client side.
+ *
+ * @version 1.0.0
+ * @author TeejMcSteez
+ * @since 2024-12-28
+ */
 /**
  * Built in Node packages
  */
@@ -40,8 +65,9 @@ const redirectToHTTPS = require('express-http-to-https').redirectToHTTPS; // DOC
 const rateLimit = require('express-rate-limit'); // DOC: https://www.npmjs.com/package/express-rate-limit
 const logger = require('pino')(); // DOC: https://getpino.io/#/
 const helmet = require('helmet'); // DOC: https://www.npmjs.com/package/helmet?activeTab=readme
+const {body, check, validationResult } = require('express-validator'); // DOC: https://express-validator.github.io/docs/guides/getting-started 
 /**
- * Packages made for this
+ * Packages made for index
  */
 /**
  * Collects system information from node:os
@@ -109,7 +135,7 @@ const helmetConfig = {
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "cdjns"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             connectSrc: ["'self'", `${HOSTNAME}`],
             formAction: ["'self'", `${HOSTNAME}`],
@@ -140,15 +166,13 @@ server.use(limiter);
  */
 const verifyToken = (req, res, next) => {
     const token = req.cookies.authToken;
-    const queryToken = req.query.token; // If token is in the query header after login uses that.
-    const tokenToVerify = token || queryToken; // Uses either valid token from login query or valid token from cookies
 
-    if (!tokenToVerify) {
+    if (!token) {
         return res.redirect('/login');
     }
 
     try {
-        const decoded = jwt.verify(tokenToVerify, JWT_PUB, {algorithms: ['RS256'] });
+        const decoded = jwt.verify(token, JWT_PUB, {algorithms: ['RS256'] });
         req.user = decoded; // Adding user info to request object
         next();
     } catch (error) {
@@ -160,7 +184,6 @@ const verifyToken = (req, res, next) => {
 /**
  * Start of the client
  */
-server.use("/protected", verifyToken, express.static(path.join(__dirname, "public")));
 /**
  * Unprotected login route with rate limiter
  */
@@ -170,7 +193,12 @@ server.get("/login", limiter,(req, res) => {
 /**
  * On POST with user info verifies and signs (With req limiting to prevent DDOS)
  */
-server.post("/login", limiter, async (req, res) => {
+server.post("/login", limiter, [body('username').isString().isLength({ min: 3}).trim().escape(), body('password').isString().isLength({ min: 8 }).trim()], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    
     const { username, password } = await req.body;
     try {
         await authService.connect();
@@ -189,7 +217,7 @@ server.post("/login", limiter, async (req, res) => {
                 maxAge: 60 * 60 * 1000,
             });
 
-            res.status(200).json({ success:true, redirect: '/?token=' + token });
+            res.status(200).json({ success:true, redirect: '/'});
 
         } else {
             logger.info(`Reason: ${valid.reason}`);
@@ -269,6 +297,19 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
     const loadAvg = system.getLoadAvg();
 
     res.json(loadAvg);
+});
+// Moved all protected and fallback routes to the end of the stack
+server.use("/protected", verifyToken, express.static(path.join(__dirname, "public")));
+
+server.use((req, res, next) => {
+    res.status(404).json({ error: 'Not Found'});
+});
+/**
+ * Global Error Handling
+ */
+server.use((err, req, res, next) => {
+    logger.error(err);
+    res.status(500).json({ error: 'Internal Service Error'});
 });
 
 /**
