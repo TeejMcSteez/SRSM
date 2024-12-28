@@ -10,8 +10,10 @@
 - dotenv
 - Express-http-to-https (for http redirects) 
 - express-rate-limit (for rate limiting page requests)
+- Pino (Logging)
+- Helmet
 ---
-Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit`
+Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet`
 ---
 ## The dotenv file will need to contain information for:
 - Hostname & Port (for express server listener)

@@ -1,19 +1,46 @@
+/* TODO:
+HIGH PRIORITY:
+    - Error handling and information disclosure (instead of console.log use a more secure way to display messages) ✔️
+        + Logging with Pino ✔️
+        + Better Error Handling 
+    - JWT Token Content (add object names for specific information to make it more legible) ✔️
+    - Mongodb Security
+        + add connection error handling ✔️
+        + implement connection pooling (max number of connections) ✔️
+        + add timeout settings ✔️
+Medium priority:
+    - Add input validatin for login creds (sanitation)
+    - Add security headers (Removes sensitive information) ✔️
+    - Implement session termination endpoints (logout)
+low priority:
+    - Add seperate limits for login attempts (implementing middleware within the function call for GET and POSTs)
+    - API Documentation for the packages I made 
+    - Implement CSRF Protection 
+    - Add request login (maybe)
+    - Implement API Versioning
+*/
+
 // Built in packages
+// Node Docs: https://nodejs.org/docs/latest/api/
 const fs = require("node:fs");
 const path = require('node:path');
 // Installed Packages
-require('dotenv').config();
-const express = require('express');
+require('dotenv').config(); // DOC: https://www.npmjs.com/package/dotenv
+const express = require('express'); // DOC: https://expressjs.com/en/5x/api.html
 const server = express(); //Namespace for express call
-const id = require('uuid');
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
-const https = require('https');
-const redirectToHTTPS = require('express-http-to-https').redirectToHTTPS;
+const id = require('uuid');  // DOC: https://www.npmjs.com/package/uuid
+const jwt = require('jsonwebtoken'); // DOC: https://www.npmjs.com/package/jsonwebtoken
+const cookieParser = require('cookie-parser'); // DOC: https://www.npmjs.com/package/cookie-parser
+const https = require('https'); // DOC: https://nodejs.org/api/https.html
+const redirectToHTTPS = require('express-http-to-https').redirectToHTTPS; // DOC: https://www.npmjs.com/package/express-http-to-https
+const rateLimit = require('express-rate-limit'); // DOC: https://www.npmjs.com/package/express-rate-limit
+const logger = require('pino')(); // DOC: https://getpino.io/#/
+const helmet = require('helmet');
 // Utilitys
 const system = require('./utils/system.js');
 const fileManager = require('./utils/readFiles.js');
 const AuthService = require('./utils/auth.js');
+const { hostname } = require("node:os");
 
 // Enviroment Variables
 const HOSTNAME = process.env.HOSTNAME;
@@ -33,27 +60,60 @@ const JWT_PUB = fs.readFileSync(process.env.JWT_PATH);
 const HTTPS_KEY = fs.readFileSync(process.env.HTTPS_KEY_PATH);
 const HTTPS_CERT = fs.readFileSync(process.env.HTTPS_CERT_PATH);
 
-// Specifying what API's to use for express responses
-server.use(redirectToHTTPS([HOSTNAME], [], 301));
-server.use(express.json());
-server.use(express.urlencoded({ extended: true })); // for form-encoded data?
-server.use(cookieParser());
+// Limiter middleware
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 100,
+    standardHeaders: 'draft-8', 
+    legacyHeaders: false,
+});
 
 // Instantiation of mongodb client service
 const uri = MONGO_URI; //27017 is the default port for mongodb
 const options = {
     tls: true,
     tlsCertificateKeyFile: CLIENT_KEY_PATH,
-    tlsCAFile: CA_PATH
+    tlsCAFile: CA_PATH,
+    maxPoolSize: 10, 
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 45000,    // Longer timeout for operations
 };
 
 const authService = new AuthService(uri, options);
+
 // HTTPS config 
 const httpsServer = https.createServer({
     key: HTTPS_KEY,
     cert: HTTPS_CERT
 }, server);
 
+// Helmet config
+const helmetConfig = {
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            connectSrc: ["'self'", `${HOSTNAME}`],
+            formAction: ["'self'", `${HOSTNAME}`],
+            imgSrc: ["'self'", "data:", "https:"],
+            upgradeInsecureRequests: [],
+        },
+    },
+    strictTransportSecurity: {
+        maxAge: 31536000, 
+        includeSubDomains: true
+    }
+};
+
+// Specifying what API's to use for express responses
+server.use(helmet(helmetConfig));
+server.use(redirectToHTTPS([HOSTNAME], [], 301));
+server.use(express.json());
+server.use(express.urlencoded({ extended: true })); // for form-encoded data?
+server.use(cookieParser());
+server.use(limiter);
 // Middleware to verify JWT tokens
 const verifyToken = (req, res, next) => {
     const token = req.cookies.authToken;
@@ -69,7 +129,7 @@ const verifyToken = (req, res, next) => {
         req.user = decoded; // Adding user info to request object
         next();
     } catch (error) {
-        console.error(`Token Verification Failed: ${error.message}`);
+        logger.error(`Token Verification Failed: ${error.message}`);
         res.clearCookie('authToken');
         return res.redirect('/login');
     }
@@ -81,18 +141,18 @@ server.use("/protected", verifyToken, express.static(path.join(__dirname, "publi
 server.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
-// On POST with user info verifies and signs
-server.post("/login", async (req, res) => {
+// On POST with user info verifies and signs (With req limiting to prevent DDOS)
+server.post("/login", limiter, async (req, res) => {
     const { username, password } = await req.body;
     try {
         await authService.connect();
 
-        const valid = await authService.validateUser(username, password);
+        const valid = await authService.validateUser(username, password).catch(error);
 
         if (valid.valid) {
-            console.log("User is validated");
+            logger.info("User is validated");
         
-            const token = jwt.sign({UID: Date.now() + id.v4()}, JWT_SECRET, {algorithm: 'RS256', expiresIn: '1h'});
+            const token = jwt.sign({subj: username, tid: id.v4(), iat: Date.now()}, JWT_SECRET, {algorithm: 'RS256', expiresIn: '1h'});
 
             res.cookie('authToken', token, {
                 httpOnly: true,
@@ -104,13 +164,13 @@ server.post("/login", async (req, res) => {
             res.status(200).json({ success:true, redirect: '/?token=' + token });
 
         } else {
-            console.log(`Reason: ${valid.reason}`);
+            logger.info(`Reason: ${valid.reason}`);
             res.status(401).json({ message: valid.message || "Invalid username or password" });
         }
-        await authService.close();
     } catch (error) {
-        console.error(`Error during login: ${error.message}`);
+        logger.error(`Error during login: ${error.message}`);
         res.status(500).json({ message: "Internal Server Error" });
+    } finally {
         await authService.close();
     }
 });
@@ -126,18 +186,18 @@ server.get('/api/temperatures', verifyToken, async (req, res) => {
 
         const tempFiles = fileManager.findTemperatureFiles(contents);
 
-       const readingsPromise =  await Promise.all(tempFiles.map(file => fileManager.findValues(CPU_TEMPERATURE_DIRECTORY, file.LABEL)));
+        const readingsPromise =  await Promise.all(tempFiles.map(file => fileManager.findValues(CPU_TEMPERATURE_DIRECTORY, file.LABEL)));
 
-       const readings = await Promise.all(readingsPromise);
+        const readings = await Promise.all(readingsPromise);
 
-       const convertedReadings = system.convert(readings);
+        const convertedReadings = system.convert(readings);
 
         // sends each converted readings value as a json response
         // Only converts temperature and millivolts currently otherwise returns the data sent to it
         res.json(convertedReadings);
 
     } catch (error) {
-        console.error(`Error fetching temperatures ${error.message}`);
+        logger.error(`Error fetching temperatures ${error.message}`);
         res.status(500).json({error: 'Could not fetch temperatures'});
     }
 });
@@ -157,7 +217,7 @@ server.get('/api/motherboard', verifyToken, async (req, res) => {
         res.json(convertedReadings);
         
     } catch (error) {
-        console.error(`Error fetching motherboard values: ${error.message}`);
+        logger.error(`Error fetching motherboard values: ${error.message}`);
         res.status(500).json({error: `Could not fetch temperature values`});
     }
 });
@@ -184,5 +244,5 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
 
 // Starting server
 httpsServer.listen(PORT, () => {
-    console.log(`Server running at https://${HOSTNAME}:${PORT}`);
+    logger.info(`Server running at https://${HOSTNAME}:${PORT}`);
 });

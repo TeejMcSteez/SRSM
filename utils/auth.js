@@ -2,6 +2,7 @@
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
+const logger = require('pino')();
 require('dotenv').config();
 
 /*
@@ -30,23 +31,24 @@ class AuthService {
         try {
             this.client = new MongoClient(this.uri, this.options);
             await this.client.connect();
-            console.log('Connected to MongoDB via TLS');
+            logger.info('Connected to MongoDB via TLS');
             this.db = this.client.db('AuthDatabase');
         } catch (error) {
-            console.error(`Failed to connect to MongoDB with error: ${error}`);
+            logger.error(`Failed to connect to MongoDB with error: ${error}`);
             throw error;
         }
     }
 
     async validateUser(USERNAME, password) {
         if (!this.db) {
-            throw new Error('Database not initialized. Call connect() first');
+            logger.error('There is no client call connect() first . . .');
+            throw new Error("No client . . .");
         }
         const trimmedUsername = USERNAME.trim();
         try {
-            console.log('Searching for user . . .');
+            logger.info('Searching for user . . .');
             const user = await this.db.collection(COLLECTION).findOne({username: trimmedUsername});
-            console.log(`Returned: ${user.username}`);
+            logger.info(`Returned: ${user.username}`);
             if (!user) {
                 return {valid: false, reason: 'User does not exist'};
             }
@@ -59,7 +61,7 @@ class AuthService {
                 isValid = false;
             }
 
-            console.log(`Bcrypt verification: ${(isValid)}`);
+            logger.info(`Bcrypt verification: ${(isValid)}`);
 
             if (isValid) {
                 return {valid: true, user};
@@ -68,7 +70,7 @@ class AuthService {
             }
 
         } catch (error) {
-            console.error(`Error validating user: ${error.message}`);
+            logger.error(`Error validating user: ${error.message}`);
             throw error;
         }
     }
@@ -76,7 +78,7 @@ class AuthService {
     async close() {
         if (this.client) {
             await this.client.close();
-            console.log("Connection Closed");
+            logger.info("Connection Closed");
             this.client = null;
             this.db = null;
         }

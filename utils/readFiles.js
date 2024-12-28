@@ -1,10 +1,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const logger = require('pino')();
 // Reads the content of a folder
 function readFolder(dir) { // Callback inside of a callback oh boy this should be food
     return new Promise((resolve, reject) => {
         fs.readdir(dir, (err, buffer) => {
-            console.log(`Readings files from ${dir}`);
+            logger.info(`Readings files from ${dir}`);
             if (err) {
                 reject(`Could not read files from ${dir}`);
             } else {
@@ -20,7 +21,7 @@ function findTemperatureFiles(dirContents) {
     let matches = dirContents.filter(filename => tempRegex.test(filename)); // Reseach .filter()
 
     if (!matches) {
-        console.log("There is no temperature information in this directory");
+        logger.info("There is no temperature information in this directory");
     }
     return matches.map(match => ({ // Research .map()
         LABEL: match
@@ -38,7 +39,7 @@ function findMotherboardFiles(dirContents) {
     let matches = voltMatches.concat(fanMatches);
     
     if (!matches) {
-        console.log("There are no temperatures to map in this directory");
+        logger.info("There are no temperatures to map in this directory");
     } 
 
     return matches.map(match => ({
@@ -53,7 +54,7 @@ async function findValues(dir, label) {
 
         fs.readFile(filePath, 'utf8', (err, data) => {
             if (err) {
-                console.log(`Could not read file ${label}`);
+                logger.info(`Could not read file ${label}`);
                 reject(err);
             } else {
                 resolve({LABEL: label, VALUE: data.trim()});
