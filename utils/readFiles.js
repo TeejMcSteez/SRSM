@@ -1,8 +1,15 @@
+/**
+ * Functions to read directories and files
+ */
 const fs = require('node:fs');
 const path = require('node:path');
 const logger = require('pino')();
-// Reads the content of a folder
-function readFolder(dir) { // Callback inside of a callback oh boy this should be food
+/**
+ * Takes array full of folder names and reads the contents on each folder
+ * @param {Array} dir - directory full of folders
+ * @returns {Array} - Returns array of read file names 
+ */
+function readFolder(dir) { 
     return new Promise((resolve, reject) => {
         fs.readdir(dir, (err, buffer) => {
             logger.info(`Readings files from ${dir}`);
@@ -14,8 +21,11 @@ function readFolder(dir) { // Callback inside of a callback oh boy this should b
         });
     });
 }
-
-// Finds the files containing temperature values within the directory
+/**
+ * Finds the temperature files within the temperature directory
+ * @param {Object[]} dirContents - Files in the temperature directory
+ * @returns {Object[]} - Returns object array of temperature files worth reading
+ */
 function findTemperatureFiles(dirContents) {
     const tempRegex = /temp\d+_\w+/; // Finds all files with temperature reading 
     let matches = dirContents.filter(filename => tempRegex.test(filename)); // Reseach .filter()
@@ -27,8 +37,11 @@ function findTemperatureFiles(dirContents) {
         LABEL: match
     }));// Returns object array of all labels in the dir
 }
-
-// Finds useful motherboard files from the directory and returns the labels
+/**
+ * Find the motherboard files worth reading within the array
+ * @param {Object[]} dirContents - Files in the motherboard directory
+ * @returns {Object[]} - Returns useful information in the motherboard directory
+ */
 function findMotherboardFiles(dirContents) {
     const voltageRegex = /in\d+_\w+/;
     const fanRegex = /fan\d+_\w+/;
@@ -46,8 +59,12 @@ function findMotherboardFiles(dirContents) {
         LABEL: match 
     }));
 }
-
-// Finds the values of the temperature values from the files within the directory
+/**
+ * Finds the values of all useful directories
+ * @param {String} dir - Directory to read the file
+ * @param {String} label - Name of the file to read
+ * @returns {Object[Label: label, VALUE: value]} - Returns useful names and values to display
+ */
 async function findValues(dir, label) {
     return new Promise((resolve, reject) => {
         const filePath = path.join(dir, label);

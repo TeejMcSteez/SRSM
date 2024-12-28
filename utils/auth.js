@@ -1,31 +1,33 @@
-// TODO: Update password comparison when I fix password values on the database
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
 const logger = require('pino')();
 require('dotenv').config();
 
-/*
-URI and Configuration example . . .
-const uri = `mongodb://${MONGODB_HOST}:27017/?authMechanism=MONGODB-X509`; //27017 is the default port for mongodb
-const options = {
-    tls: true,
-    tlsCertificateKeyFile: CLIENT_KEY_PATH,
-    tlsCAFile: CA_PATH
-};
-const authService = new AuthService(uri, options);
-*/ 
-
 const COLLECTION = process.env.USER_DATABASE;
-
+/**
+ * Connects, Validates, and Closes Mongodb database of users 
+ */
 class AuthService {
+    /**
+    * URI and Configuration example . . .
+    * const uri = `mongodb://${MONGODB_HOST}:27017/?authMechanism=MONGODB-X509`; //27017 is the default port for mongodb
+    * `const options = {
+    *     tls: true,
+    *     tlsCertificateKeyFile: CLIENT_KEY_PATH,
+    *     tlsCAFile: CA_PATH
+    * };`
+    * `const authService = new AuthService(uri, options);`
+    */ 
     constructor(uri, options = {}) {
         this.uri = uri;
         this.options = options;
         this.client = null;
         this.db = null;
     }
-
+    /**
+     * Connects to Mongodb and instantiates client to use
+     */
     async connect() {
         if (this.client) return;
 
@@ -39,7 +41,13 @@ class AuthService {
             throw error;
         }
     }
-
+    /**
+     * Validates user within the database using client information
+     * CALL CONNECT FIRST!
+     * @param {String} USERNAME 
+     * @param {String} password 
+     * @returns {Object[valid: Boolean, reason: String]} - Returns object with validation boolean and reason for validation choice
+     */
     async validateUser(USERNAME, password) {
         if (!this.db) {
             logger.error('There is no client call connect() first . . .');
@@ -75,7 +83,9 @@ class AuthService {
             throw error;
         }
     }
-    
+    /**
+     * Closes session THIS IS NECESSARY! Otherwise client will leave unclosed sessions on server
+     */
     async close() {
         if (this.client) {
             await this.client.close();
@@ -85,5 +95,7 @@ class AuthService {
         }
     }
 }
-
+/**
+ * Auth Service Class for Mongodb User Authentication
+ */
 module.exports = AuthService;

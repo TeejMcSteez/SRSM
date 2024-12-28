@@ -1,30 +1,34 @@
-/* TODO:
-HIGH PRIORITY:
-    - Error handling and information disclosure (instead of console.log use a more secure way to display messages) ✔️
-        + Logging with Pino ✔️
-        + Better Error Handling 
-    - JWT Token Content (add object names for specific information to make it more legible) ✔️
-    - Mongodb Security
-        + add connection error handling ✔️
-        + implement connection pooling (max number of connections) ✔️
-        + add timeout settings ✔️
-Medium priority:
-    - Add input validatin for login creds (sanitation)
-    - Add security headers (Removes sensitive information) ✔️
-    - Implement session termination endpoints (logout)
-low priority:
-    - Add seperate limits for login attempts (implementing middleware within the function call for GET and POSTs)
-    - API Documentation for the packages I made 
-    - Implement CSRF Protection 
-    - Add request login (maybe)
-    - Implement API Versioning
+/**
+ * TODO:
+ * HIGH PRIORITY:
+ *  - Error handling and information disclosure (instead of console.log use a more secure way to display messages) ✔️
+ *       + Logging with Pino ✔️
+ *       + Better Error Handling 
+ *   - JWT Token Content (add object names for specific information to make it more legible) ✔️
+ *   - Mongodb Security
+ *       + add connection error handling ✔️
+ *       + implement connection pooling (max number of connections) ✔️
+ *       + add timeout settings ✔️
+ * Medium priority:
+ *   - Add input validatin for login creds (sanitation)
+ *   - Add security headers (Removes sensitive information) ✔️
+ *   - Implement session termination endpoints (logout)
+ * low priority:
+ *   - Add seperate limits for login attempts (implementing middleware within the function call for GET and POSTs)
+ *   - API Documentation for the packages I made 
+ *   - Implement CSRF Protection 
+ *   - Add request login (maybe)
+ *   - Implement API Versioning ✔️ (Used JSDoc Standards)
 */
-
-// Built in packages
+/**
+ * Built in Node packages
+ */
 // Node Docs: https://nodejs.org/docs/latest/api/
 const fs = require("node:fs");
 const path = require('node:path');
-// Installed Packages
+/**
+ * Installed Packages
+ */
 require('dotenv').config(); // DOC: https://www.npmjs.com/package/dotenv
 const express = require('express'); // DOC: https://expressjs.com/en/5x/api.html
 const server = express(); //Namespace for express call
@@ -35,13 +39,22 @@ const https = require('https'); // DOC: https://nodejs.org/api/https.html
 const redirectToHTTPS = require('express-http-to-https').redirectToHTTPS; // DOC: https://www.npmjs.com/package/express-http-to-https
 const rateLimit = require('express-rate-limit'); // DOC: https://www.npmjs.com/package/express-rate-limit
 const logger = require('pino')(); // DOC: https://getpino.io/#/
-const helmet = require('helmet');
-// Utilitys
+const helmet = require('helmet'); // DOC: https://www.npmjs.com/package/helmet?activeTab=readme
+/**
+ * Packages made for this
+ */
+/**
+ * Collects system information from node:os
+ */
 const system = require('./utils/system.js');
+/**
+ * Does important file operations with node
+ */
 const fileManager = require('./utils/readFiles.js');
 const AuthService = require('./utils/auth.js');
-
-// Enviroment Variables
+/**
+ * Enviroment Variables
+ */
 const HOSTNAME = process.env.HOSTNAME;
 const PORT = process.env.PORT;
 
@@ -58,16 +71,18 @@ const JWT_PUB = fs.readFileSync(process.env.JWT_PATH);
 
 const HTTPS_KEY = fs.readFileSync(process.env.HTTPS_KEY_PATH);
 const HTTPS_CERT = fs.readFileSync(process.env.HTTPS_CERT_PATH);
-
-// Limiter middleware
+/**
+ * Limiter Middlware
+ */
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     limit: 100,
     standardHeaders: 'draft-8', 
     legacyHeaders: false,
 });
-
-// Instantiation of mongodb client service
+/**
+ * Instantiation of Mongodb uri and options
+ */
 const uri = MONGO_URI; //27017 is the default port for mongodb
 const options = {
     tls: true,
@@ -80,14 +95,16 @@ const options = {
 };
 
 const authService = new AuthService(uri, options);
-
-// HTTPS config 
+/**
+ * HTTPS Config
+ */
 const httpsServer = https.createServer({
     key: HTTPS_KEY,
     cert: HTTPS_CERT
 }, server);
-
-// Helmet config
+/**
+ * Helmet Config
+ */
 const helmetConfig = {
     contentSecurityPolicy: {
         directives: {
@@ -105,15 +122,22 @@ const helmetConfig = {
         includeSubDomains: true
     }
 };
-
-// Specifying what API's to use for express responses
+/**
+ * Specifying the middleware to use with server
+ */
 server.use(helmet(helmetConfig));
 server.use(redirectToHTTPS([HOSTNAME], [], 301));
 server.use(express.json());
 server.use(express.urlencoded({ extended: true })); // for form-encoded data?
 server.use(cookieParser());
 server.use(limiter);
-// Middleware to verify JWT tokens
+/**
+ * Middleware for verifying JWT Token
+ * @param {Request} req 
+ * @param {Response} res 
+ * @param {NextFunction} next 
+ * @returns {void}
+ */
 const verifyToken = (req, res, next) => {
     const token = req.cookies.authToken;
     const queryToken = req.query.token; // If token is in the query header after login uses that.
@@ -133,14 +157,19 @@ const verifyToken = (req, res, next) => {
         return res.redirect('/login');
     }
 };
-
-// Start of client
+/**
+ * Start of the client
+ */
 server.use("/protected", verifyToken, express.static(path.join(__dirname, "public")));
-// Unprotected login route
+/**
+ * Unprotected login route with rate limiter
+ */
 server.get("/login", limiter,(req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
-// On POST with user info verifies and signs (With req limiting to prevent DDOS)
+/**
+ * On POST with user info verifies and signs (With req limiting to prevent DDOS)
+ */
 server.post("/login", limiter, async (req, res) => {
     const { username, password } = await req.body;
     try {
@@ -173,12 +202,15 @@ server.post("/login", limiter, async (req, res) => {
         await authService.close();
     }
 });
-// On root req checks for tokens and routes accordingly
+/**
+ * On root req checks for tokens and routes accordingly
+ */
 server.get('/', verifyToken, async (req, res) => {
     res.sendFile(path.join(__dirname, 'public/protected', 'index.html'));
 });
-
-// API's
+/**
+ * API's
+ */
 server.get('/api/temperatures', verifyToken, async (req, res) => {
     try {
         const contents = await fileManager.readFolder(CPU_TEMPERATURE_DIRECTORY);
@@ -191,8 +223,6 @@ server.get('/api/temperatures', verifyToken, async (req, res) => {
 
         const convertedReadings = system.convert(readings);
 
-        // sends each converted readings value as a json response
-        // Only converts temperature and millivolts currently otherwise returns the data sent to it
         res.json(convertedReadings);
 
     } catch (error) {
@@ -241,7 +271,9 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
     res.json(loadAvg);
 });
 
-// Starting server
+/**
+ * Starting Server
+ */
 httpsServer.listen(PORT, () => {
     logger.info(`Server running at https://${HOSTNAME}:${PORT}`);
 });
