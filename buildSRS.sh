@@ -2,10 +2,11 @@
 # hwmon
 hwmon = '/sys/class/hwmon'
 env_file='.env'
-#clears or creates .env
-> .env
 
 echo 'Starting build . . .'
+
+#clears or creates .env
+> .env
 
 echo 'Please enter the hostname for the HTTPS server (Example: localhost, 127.0.0.1, 192.168.1.1). . .'
 read HOSTNAME
@@ -16,8 +17,8 @@ echo 'Building node enviroment and packages. . .'
 
 npm init -y 
 echo "NPM initialized installing packages"
-npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https
-echo "Packages installed starting file detection for env variables"
+npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet
+echo "Packages installed starting file detection . . ."
 
 for dir in "$hwmon"/*; do
     if [[ ! -d "$dir" ]]; then 
@@ -114,6 +115,8 @@ cd src
 git init
 git remote add origin https://github.com/TeejMcSteez/AuthedRemoteServer
 git pull origin master
+rm buildSRS.sh 
+echo "Removed build file from pull . . ."
 
 echo "Creating certificate directories for credentials . . ."
 mkdir https
