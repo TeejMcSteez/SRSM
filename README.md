@@ -9,8 +9,9 @@
 - jsonwebtoken (for session management)
 - dotenv
 - Express-http-to-https (for http redirects) 
+- express-rate-limit (for rate limiting page requests)
 ---
-Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https`
+Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit`
 ---
 ## The dotenv file will need to contain information for:
 - Hostname & Port (for express server listener)
