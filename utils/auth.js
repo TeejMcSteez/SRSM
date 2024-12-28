@@ -1,4 +1,4 @@
-// TODO: Replace password comparison when I fix password values on the database
+// TODO: Update password comparison when I fix password values on the database
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
@@ -13,6 +13,7 @@ const options = {
     tlsCertificateKeyFile: CLIENT_KEY_PATH,
     tlsCAFile: CA_PATH
 };
+const authService = new AuthService(uri, options);
 */ 
 
 const COLLECTION = process.env.USER_DATABASE;
@@ -68,7 +69,7 @@ class AuthService {
             } else {
                 return {valid: false, reason: 'Invalid password.'};
             }
-
+            return {valid: false, reason: 'Validation logic failed, user is false for security . . .'}; // Added incase if else statement are never hit program will return false
         } catch (error) {
             logger.error(`Error validating user: ${error.message}`);
             throw error;

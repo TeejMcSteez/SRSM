@@ -40,7 +40,6 @@ const helmet = require('helmet');
 const system = require('./utils/system.js');
 const fileManager = require('./utils/readFiles.js');
 const AuthService = require('./utils/auth.js');
-const { hostname } = require("node:os");
 
 // Enviroment Variables
 const HOSTNAME = process.env.HOSTNAME;
@@ -75,7 +74,7 @@ const options = {
     tlsCertificateKeyFile: CLIENT_KEY_PATH,
     tlsCAFile: CA_PATH,
     maxPoolSize: 10, 
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 15000,
     connectTimeoutMS: 10000,
     socketTimeoutMS: 45000,    // Longer timeout for operations
 };
@@ -138,7 +137,7 @@ const verifyToken = (req, res, next) => {
 // Start of client
 server.use("/protected", verifyToken, express.static(path.join(__dirname, "public")));
 // Unprotected login route
-server.get("/login", (req, res) => {
+server.get("/login", limiter,(req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 // On POST with user info verifies and signs (With req limiting to prevent DDOS)
@@ -170,7 +169,7 @@ server.post("/login", limiter, async (req, res) => {
     } catch (error) {
         logger.error(`Error during login: ${error.message}`);
         res.status(500).json({ message: "Internal Server Error" });
-    } finally {
+    } finally { // Must close the service after use to end the session
         await authService.close();
     }
 });
