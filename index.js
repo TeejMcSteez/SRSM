@@ -87,7 +87,7 @@ const HTTPS_CERT = fs.readFileSync(process.env.HTTPS_CERT_PATH);
  */
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100,
+    limit: 900, // I have requests at 3 seconds intervals over 900 seconds will equate to 300 requests every 900 seconds (15 min), At 1 second interval will be 900 requests every 15 min. 
     standardHeaders: 'draft-8', 
     legacyHeaders: false,
 });
@@ -159,7 +159,6 @@ const helmetConfig = {
 server.use(helmet(helmetConfig));
 server.use(redirectToHTTPS([HOSTNAME], [], 301));
 server.use(express.json());
-server.use(express.urlencoded({ extended: true })); // for form-encoded data?
 server.use(cookieParser());
 server.use(limiter);
 /**
