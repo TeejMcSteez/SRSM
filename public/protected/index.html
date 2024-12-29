@@ -4,101 +4,137 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Remote PC Readings</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!--Used for charts-->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #242424;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: #333333;
+            --accent: #c41e3a;
+            --chart-bg: #242424;
+            --success: #4caf50;
+            --error: #ff1744;
+        }
+
         body {
             height: 100%;
             width: 100%;
-            background-color: grey;
-            margin: 0; /* Remove default body margins for consistent layout */
+            background-color: var(--bg-primary);
+            margin: 0;
             display: flex;
-            flex-direction: column; /* Organize title and content vertically */
-            align-items: center; /* Center the title horizontally */
+            flex-direction: column;
+            align-items: center;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-primary);
         }
 
         h1 {
-            margin: 10px 0; /* Add some space above and below the title */
-            text-align: center; /* Center the title text */
-            font-size: 2em;
-            color: white; /* Stand out against grey background */
+            margin: 24px 0;
+            color: var(--text-primary);
+            font-size: 24px;
+            font-weight: 500;
         }
 
         #content {
-            flex: 1;
             display: flex;
             justify-content: space-between;
-            width: 100%; /* Take full width of the page */
-            align-items: flex-start; /* Align table and chart to the top */
-            padding: 20px; /* Add space around the content */
-            box-sizing: border-box; /* Include padding in width calculations */
+            width: 95%;
+            max-width: 1400px;
+            gap: 24px;
+            padding: 0 24px 24px;
+            box-sizing: border-box;
         }
-        /*Making all graphics and uptime display vertically beside the table on desktop*/
+
         #graphics {
             flex: 2;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            gap: 24px;
         }
 
         table {
-            width: 40%; /* Table takes up 40% of the width */
-            margin: 0; /* Remove extra margin */
-            background-color: rgb(247, 132, 132); /* Stand out against grey background */
-            border-collapse: collapse; /* Remove extra space between cells */
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            border-collapse: collapse;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         th, td {
-            font-size: x-large;
-            border: 2px solid black; /* Define cell borders */
-            padding: 15px;
-            text-align: left; /* Align text to the left for readability */
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
         }
 
-        #doughnut {
-            padding: 15px;
-            margin: 0; /* Remove margin to align with table */
-            display: flex;
-            justify-content: center; /* Center the canvas inside the container */
-            align-items: center;
-            background-color: rgb(240, 181, 142); /* Optional: Background for chart container */
-            border-radius: 5% 5% 25% 5%;
+        th {
+            background: var(--accent);
+            color: white;
+            font-weight: 500;
+        }
+
+        td {
+            color: var(--text-primary);
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #doughnut, #bar {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        #uptime {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        #uptime h2 {
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        #uptimeHolder {
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 500;
+            margin: 0;
         }
 
         canvas {
             max-width: 100%;
-            max-height: 100%; /* Ensure the canvas scales with its container */
+            max-height: 100%;
         }
 
-        #uptime {
-            display: flex;
-            flex-direction: column;
-            margin-top: 20px;
-            background-color: rgb(200, 200, 200);
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            color: black;
-        }
-
-        @media screen and (max-width: 992px) { /* For mobile screens */
+        @media screen and (max-width: 992px) {
             #content {
                 flex-direction: column;
-                justify-content: space-evenly;
-                align-items: center;
+                padding: 16px;
+                gap: 16px;
             }
 
-            table {
-                width: 90%; /* Expand table for smaller screens */
+            table, #graphics {
+                width: 100%;
             }
 
-            #graphics {
-                width: 90%; /* Ensure graphics fit well */
-            }
-
-            #doughnut {
-                width: 100%; /* Make chart container responsive */
+            th, td {
+                padding: 8px 12px;
             }
         }
     </style>
@@ -106,7 +142,6 @@
     <h1>Hardware Information</h1>
 
     <div id="content">
-
         <table id="readingsTable">
             <thead>
                 <tr>
@@ -133,8 +168,6 @@
                 <p id="uptimeHolder"></p>
             </div>
         </div>
-
-
     </div>
 
     <script>
@@ -157,7 +190,8 @@
                     datasets: [{
                         label: 'GB',
                         data: [chartInformation[0], chartInformation[1]],
-                        backgroundColor: ['rgb(50, 150, 50)', 'rgb(255, 50, 0)'],
+                        backgroundColor: ['#4caf50', '#c41e3a'],
+                        borderWidth: 0,
                         hoverOffset: 4
                     }]
                 };
@@ -167,25 +201,26 @@
                     datasets: [{
                         label: 'Processes',
                         data: [loadAvg[0], loadAvg[1], loadAvg[2]],
-                        backgroundColor: ["rgb(255, 0, 50)","rgb(0, 250, 50)","rgb(50, 15, 250)"],
+                        backgroundColor: ["#ff1744","#ff4569","#ff8095"],
+                        borderWidth: 0,
                         hoverOffset: 4
                     }]
                 };
 
-                const doughnutOptions = {
+                const sharedOptions = {
                     plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        },
                         title: {
+                            color: '#e0e0e0',
                             display: true,
-                            text: "Memory Usage"
-                        }
-                    }
-                };
-
-                const loadOptions = {
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: "Load Average"
+                            font: {
+                                size: 16,
+                                weight: 500
+                            }
                         }
                     }
                 };
@@ -193,13 +228,41 @@
                 const doughnutConfig = {
                     type: 'doughnut',
                     data: doughnutData,
-                    options: doughnutOptions
+                    options: {
+                        ...sharedOptions,
+                        plugins: {
+                            ...sharedOptions.plugins,
+                            title: {
+                                ...sharedOptions.plugins.title,
+                                text: "Memory Usage"
+                            }
+                        }
+                    }
                 };
 
                 const loadConfig = {
                     type: "bar",
                     data: loadData,
-                    options: loadOptions
+                    options: {
+                        ...sharedOptions,
+                        plugins: {
+                            ...sharedOptions.plugins,
+                            title: {
+                                ...sharedOptions.plugins.title,
+                                text: "Load Average"
+                            }
+                        },
+                        scales: {
+                            y: {
+                                ticks: { color: '#e0e0e0' },
+                                grid: { color: '#333333' }
+                            },
+                            x: {
+                                ticks: { color: '#e0e0e0' },
+                                grid: { color: '#333333' }
+                            }
+                        }
+                    }
                 };
 
                 const memctx = document.getElementById("memoryDoughnut").getContext('2d');
@@ -247,7 +310,6 @@
 
                 combinedReadings.forEach(reading => {
                     const row = document.createElement('tr');
-                    // Labels readings based of value type
                     if (reading.LABEL.includes("fan")) {
                             if (!maxFanInputs[reading.LABEL] || reading.VALUE > maxFanInputs[reading.LABEL]) {
                                 maxFanInputs[reading.LABEL] = reading.VALUE;
@@ -257,7 +319,6 @@
                             <td>${reading.VALUE} RPM</td>
                             <td>${maxFanInputs[reading.LABEL]} RPM</td>
                         `;
-                        tableBody.appendChild(row);
                     } else if (voltRegex.test(reading.LABEL)) {
                         if (!maxVoltages[reading.LABEL] || reading.VALUE > maxVoltages[reading.LABEL]) {
                                 maxVoltages[reading.LABEL] = reading.VALUE;
@@ -267,7 +328,6 @@
                             <td>${reading.VALUE} V</td>
                             <td>${maxVoltages[reading.LABEL]} V</td>
                         `;
-                        tableBody.appendChild(row);
                     } else if (tempRegex.test(reading.LABEL)) {
                         if (!tempMaxes[reading.LABEL] || reading.VALUE > tempMaxes[reading.LABEL]) {
                                 tempMaxes[reading.LABEL] = reading.VALUE;
@@ -277,14 +337,13 @@
                             <td>${reading.VALUE} °C</td>
                             <td>${tempMaxes[reading.LABEL]} °C</td>
                         `;
-                        tableBody.appendChild(row);
                     } else {
                         row.innerHTML = `
                         <td>${reading.LABEL}</td>
                         <td>${reading.VALUE}</td>
                         `;
-                        tableBody.appendChild(row);
                     }
+                    tableBody.appendChild(row);
                 });
 
                 const uptimeResponse = await fetch('/api/uptime');
@@ -300,8 +359,6 @@
         startChart();
         updateValues();
         setInterval(updateValues, 3000);
-
     </script>
-    
 </body>
 </html>

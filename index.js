@@ -135,10 +135,10 @@ const helmetConfig = {
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "cdjns"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdeliver.net"],
             styleSrc: ["'self'", "'unsafe-inline'"],
-            connectSrc: ["'self'", `${HOSTNAME}`],
-            formAction: ["'self'", `${HOSTNAME}`],
+            connectSrc: ["'self'"],
+            formAction: ["'self'"],
             imgSrc: ["'self'", "data:", "https:"],
             upgradeInsecureRequests: [],
         },
