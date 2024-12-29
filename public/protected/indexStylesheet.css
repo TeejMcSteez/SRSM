@@ -29,6 +29,20 @@ h1 {
     font-weight: 500;
 }
 
+.slideContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    background-color: #c41e3a;
+    height: 10%;
+}
+
+#secondsTag {
+    padding: 5px 4px;
+    margin-left: 10px;
+}
+
 #content {
     display: flex;
     justify-content: space-between;
@@ -125,5 +139,13 @@ canvas {
 
     th, td {
         padding: 8px 12px;
+    }
+
+    .slideContainer {
+        background-color: #c41e3a;
+        cursor: pointer;
+        display: flex;
+        flex-direction: row;
+        width: 250px;
     }
 }

@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Remote PC Readings</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/protected/indexStylesheet.css">
+    <link rel="stylesheet" href="/src/public/protected/indexStylesheet.css">
 </head>
 <body>
     <h1>Hardware Information</h1>
 
     <div id="content">
+        <div class="slideContainer">
+            <input type="range", min="1", max="3", value="3", class="slider", id="myRange">
+            <p id="secondsTag">3 Seconds</p>
+        </div>
         <table id="readingsTable">
             <thead>
                 <tr>
@@ -39,6 +43,6 @@
         </div>
     </div>
 
-    <script src="/script.js"></script>
+    <script src="/src/public/protected/script.js"></script>
 </body>
 </html>

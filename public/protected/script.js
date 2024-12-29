@@ -2,7 +2,13 @@ let memoryDoughnut;
 let loadBar;
 let tempMaxes = {};
 let maxVoltages  = {};        
-let maxFanInputs = {};        
+let maxFanInputs = {};
+
+// We'll keep a reference to our interval
+let updateInterval;
+
+// Default interval is 3 seconds (i.e., slider value "3" * 1000)
+let inputInterval = 3000;        
 
 async function startChart() {
     try {
@@ -98,7 +104,7 @@ async function startChart() {
         const loadctx = document.getElementById("loadBar").getContext("2d");
         loadBar = new Chart(loadctx, loadConfig);
     } catch (error) {
-        console.error(`Error starting chart: ${error.message}`);
+        return;
     }
 }
 
@@ -138,36 +144,36 @@ async function updateValues() {
         combinedReadings.forEach(reading => {
             const row = document.createElement('tr');
             if (reading.LABEL.includes("fan")) {
-                    if (!maxFanInputs[reading.LABEL] || reading.VALUE > maxFanInputs[reading.LABEL]) {
-                        maxFanInputs[reading.LABEL] = reading.VALUE;
-                    }
-                    row.innerHTML = `
+                if (!maxFanInputs[reading.LABEL] || reading.VALUE > maxFanInputs[reading.LABEL]) {
+                    maxFanInputs[reading.LABEL] = reading.VALUE;
+                }
+                row.innerHTML = `
                     <td>${reading.LABEL}</td>
                     <td>${reading.VALUE} RPM</td>
                     <td>${maxFanInputs[reading.LABEL]} RPM</td>
                 `;
             } else if (voltRegex.test(reading.LABEL)) {
                 if (!maxVoltages[reading.LABEL] || reading.VALUE > maxVoltages[reading.LABEL]) {
-                        maxVoltages[reading.LABEL] = reading.VALUE;
-                    }
-                    row.innerHTML = `
+                    maxVoltages[reading.LABEL] = reading.VALUE;
+                }
+                row.innerHTML = `
                     <td>${reading.LABEL}</td>
                     <td>${reading.VALUE} V</td>
                     <td>${maxVoltages[reading.LABEL]} V</td>
                 `;
             } else if (tempRegex.test(reading.LABEL)) {
                 if (!tempMaxes[reading.LABEL] || reading.VALUE > tempMaxes[reading.LABEL]) {
-                        tempMaxes[reading.LABEL] = reading.VALUE;
-                    }
-                    row.innerHTML = `
+                    tempMaxes[reading.LABEL] = reading.VALUE;
+                }
+                row.innerHTML = `
                     <td>${reading.LABEL}</td>
                     <td>${reading.VALUE} °C</td>
                     <td>${tempMaxes[reading.LABEL]} °C</td>
                 `;
             } else {
                 row.innerHTML = `
-                <td>${reading.LABEL}</td>
-                <td>${reading.VALUE}</td>
+                    <td>${reading.LABEL}</td>
+                    <td>${reading.VALUE}</td>
                 `;
             }
             tableBody.appendChild(row);
@@ -180,9 +186,35 @@ async function updateValues() {
         uptimeHolder.innerHTML = `${uptime[0]}:${uptime[1]}:${uptime[2]}:${uptime[3]}`;
 
     } catch (error) {
-        console.error(`Error updating values: ${error.message}`);
+        return;
     }
 }
-startChart();
-updateValues();
-setInterval(updateValues, 3000);
+
+// This function clears and re-sets our interval based on the latest slider value
+function setUpdateInterval() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+    }
+    updateInterval = setInterval(updateValues, inputInterval);
+}
+
+try {
+    startChart();
+    updateValues();
+
+    // Grab our slider and set an event listener
+    const slider = document.getElementById("myRange");
+    const secondsTag = document.getElementById("secondsTag");
+    // Initialize the global interval based on the default 'inputInterval'
+    setUpdateInterval();
+    secondsTag.innerText = slider.value + " Seconds";
+    // Whenever the slider changes, update 'inputInterval' and re-set the interval
+    slider.oninput = function() {
+        // slider.value is in seconds, multiply by 1000 to get milliseconds
+        inputInterval = slider.value * 1000;
+        secondsTag.innerText = slider.value + " Seconds";
+        setUpdateInterval();
+    };
+} catch (error) {
+    alert(`Error Occured: ${error.message}`);
+}
