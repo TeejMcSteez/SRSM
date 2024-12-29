@@ -14,8 +14,8 @@
  * @version 1.0.0
  * @since 2024-12-28
  */
-const { MongoClient } = require('mongodb');
-const bcrypt = require('bcrypt');
+const { MongoClient } = require('mongodb'); // DOC: https://www.npmjs.com/package/mongodb
+const argon2 = require('argon2'); // DOC: https://www.npmjs.com/package/argon2
 const logger = require('pino')();
 require('dotenv').config();
 
@@ -104,7 +104,7 @@ class AuthService {
                 return {valid: false, reason: 'User does not exist'};
             }
             // In prod I need to replace my database password when encrypted passwords to compare with bcrypt
-            // const isValid = (await bcrypt.compare(password, user.pwd));
+            // const isValid = await argon2.verify(password, user.pwd);
             let isValid = false;
             if (password === user.pwd) {
                 isValid = true;

@@ -179,7 +179,7 @@ const verifyToken = (req, res, next) => {
     }
 
     try {
-        const decodedRefresh = jwt.verify(refreshToken, JWT_PUB, {algorithms: ['RS384']});
+        const decodedRefresh = jwt.verify(refreshToken, JWT_PUB, {algorithms: ['RS256']});
 
         if (!token) {
             logger.info("No access token generating new one")
@@ -241,7 +241,7 @@ server.post("/login", loginLimiter, loginSanitation, async (req, res) => {
                 maxAge: 60 * 60 * 1000, // 1hr 
             });
 
-            const refreshToken = jwt.sign({subj: username, tid: id.v4(), iat: Date.now()}, JWT_SECRET, {algorithm: 'RS384', expiresIn: '12h'});
+            const refreshToken = jwt.sign({subj: username, tid: id.v4(), iat: Date.now()}, JWT_SECRET, {algorithm: 'RS256', expiresIn: '12h'});
 
             res.cookie('refToken', refreshToken, {
                 httpOnly: true,

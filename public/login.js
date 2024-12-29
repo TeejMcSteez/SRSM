@@ -17,7 +17,6 @@ loginForm.addEventListener('submit', async (event) => {
 
     if (response.ok) {
       const data = await response.json();
-      // sessionStorage.setItem('authToken', data.token); Deprecated dont wanna use session storage and only wanna use cookie storage for proper handling, I cant access the session storage from the server side DUMBASS
       alert('Login successful! Redirecting...');
       window.location.href = data.redirect; // Redirect to your main page
     } else {

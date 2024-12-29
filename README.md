@@ -5,7 +5,7 @@
 - Node/npm (Using path and fs built in packages)
 - Express 
 - UUID (for jsonwebtoken UID)
-- Bcrypt (To compare hashed DB values)
+- Argon2 (To compare hashed DB values)
 - jsonwebtoken (for session management)
 - dotenv
 - Express-http-to-https (for http redirects) 
@@ -13,7 +13,7 @@
 - Pino (Logging)
 - Helmet
 ---
-Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet express-validator`
+Install with `npm i express uuid argon2 jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet express-validator`
 ---
 ## The dotenv file will need to contain information for:
 - Hostname & Port (for express server listener)
@@ -23,3 +23,6 @@ Install with `npm i express uuid bcrypt jsonwebtoken dotenv express-http-to-http
 - Private & public key path (for JWT verification)
 ---
 **It is not fully secure** there is still plenty of work to be done . . . but this is a start and man is it cool and fun
+# For me # 
+- When I get back to the server I need to remove database information and use hashed information for proper handling of non-plaintext information. 
+- Also, Need to restrict login information to read only as there is no need to write to the database yet and will prob use another role for that
