@@ -1,47 +1,32 @@
 /**
- * @fileoverview Security Audit Summary for index.js (By GPT o1)
+ * @fileoverview Final Things to do for final deployment
  * @description
- *  This file defines an Express-based Node.js server with HTTPS support, rate limiting,
- *  JWT-based authentication, and MongoDB connectivity. Below is a high-level security review
- *  summarizing potential risks and recommended enhancements:
- *
- *  1. Token Handling
- *     - @notice Using query parameters (req.query.token) for JWT tokens can inadvertently
- *       expose tokens in logs and browser history. Prefer cookies or Authorization headers.
- *     - @notice Clearing token variables (token = null, tokenToVerify = null) helps minimize
- *       the window of exposure in memory, but does not guarantee immediate garbage collection.
- *
- *  2. Input Validation & Sanitization ✔️ @notice Used express-validator to validate username and pwd input
- *     - @notice Validate and sanitize all user-provided data (e.g., username, password).
- *       This prevents injection attacks and ensures the data meets expected formats.
- *     - @recommendation Consider using express-validator or Joi for structured validation.
- *
- *  3. MongoDB Security ✔️ @notice Implemented global error handling for failures on the backend
- *     - @notice TLS, connection pooling, and timeouts are configured. Ensure least-privilege
- *       MongoDB user permissions. 
- *     - @recommendation Use try-catch blocks (or a global error handler) to avoid detailed
- *       error leakage.
- *
- *  4. Express & Middleware
- *     - @notice Helmet is configured with CSP and HSTS, which is good for preventing
- *       some common attacks. Adjust the directives carefully if you add external scripts.
- *     - @notice Rate limiting is in place. Fine-tune thresholds for login routes to
- *       mitigate brute-force attacks.
- *     - @recommendation Implement CSRF protection if you accept form data that modifies
- *       server-side state.
- *
- *  5. Logging & Error Handling ✔️ (Added global error handling to the script)
- *     - @notice Using Pino to handle structured logging. Avoid logging tokens, passwords,
- *       or other secrets. 
- *     - @recommendation Add a global error-handling middleware to catch unhandled exceptions
- *       and return a generic error to the client. ✔️
- *
- *  6. Miscellaneous
- *     - @notice Store certificates and keys with strict file permissions (e.g., chmod 600).
- *     - @recommendation Provide a logout or session termination route to invalidate JWTs
- *       on the client side.
- *
- * @version 1.0.0
+ * This is the final TODO list for the secure remote web server (or atleast what I am capable of and slightly understand right now)
+ * Mainly reminders I can check before deployment
+ * 
+ * 1. Ensure proper helmet configuration
+ * - @notice ensure that cdn, IP's used, and security configs are correct for the setup
+ * - @notice think about adding CSRF protection as well (prob through helmet)
+ * 
+ * 2. Perms for sensitive information 
+ * - @notice Store certificates and keys with strict file permissions (e.g., chmod 600).
+ * - @recommendation Provide a logout or session termination route to invalidate JWTs
+ * on the client side.
+ * 
+ * 3. Add password hashing on the server
+ * - @notice ensure that on the server and auth.js class there is password hashing and the passwords are not being stored in plain text
+ * - @notice store passwords in hashed bcrypt or other library to check for upon validation
+ * 
+ * 4. Token refreshing (!Semi-Important!)
+ * @notice when the user sits in the application and does not exit then refresh the JWT token after the timeout to ensure the user can 
+ * keep there session and information and not have to re-log back in 
+ * 
+ * 5. Miscellaneous
+ * @notice Add request login and logout functionality
+ * @recommendation Add logout functionality to the index page I will prob not make a way to request a login as this is a personal
+ * application and it is not needed  
+ * 
+ * @version 1.1.0
  * @author TeejMcSteez
  * @since 2024-12-28
  */
@@ -239,6 +224,9 @@ server.get('/', verifyToken, async (req, res) => {
 /**
  * API's
  */
+/**
+ * Gets CPU Temperature Information
+ */
 server.get('/api/temperatures', verifyToken, async (req, res) => {
     try {
         const contents = await fileManager.readFolder(CPU_TEMPERATURE_DIRECTORY);
@@ -258,7 +246,9 @@ server.get('/api/temperatures', verifyToken, async (req, res) => {
         res.status(500).json({error: 'Could not fetch temperatures'});
     }
 });
-
+/**
+ * Gets Motherboard Readings
+ */
 server.get('/api/motherboard', verifyToken, async (req, res) => {
     try {
         const contents = await fileManager.readFolder(MOTHERBOARD_DIRECTORY);
@@ -278,13 +268,17 @@ server.get('/api/motherboard', verifyToken, async (req, res) => {
         res.status(500).json({error: `Could not fetch temperature values`});
     }
 });
-
+/**
+ * Gets Current and Total memory for graph
+ */
 server.get('/api/chartInformation', verifyToken, async (req, res) => {
     const memoryInformation = [system.getCurrentMemory(), system.getTotalMemory()];
 
     res.json(memoryInformation);
 });
-
+/**
+ * Gets uptime of the server in milliseconds
+ */
 server.get('/api/uptime', verifyToken, async (req, res) => {
     const uptime = system.getUptime();
 
@@ -292,15 +286,21 @@ server.get('/api/uptime', verifyToken, async (req, res) => {
 
     res.json(uptimeSplit);
 });
-
+/**
+ * Gets 1, 5, 15 minute load average array from node
+ */
 server.get('/api/loadAvg', verifyToken, (req, res) => {
     const loadAvg = system.getLoadAvg();
 
     res.json(loadAvg);
 });
-// Moved all protected and fallback routes to the end of the stack
+/**
+ * Protected route near bottom of stacl
+ */
 server.use("/protected", verifyToken, express.static(path.join(__dirname, "public")));
-
+/**
+ * Global Error Handling
+ */
 server.use((req, res, next) => {
     res.status(404).json({ error: 'Not Found'});
 });
@@ -311,7 +311,6 @@ server.use((err, req, res, next) => {
     logger.error(err);
     res.status(500).json({ error: 'Internal Service Error'});
 });
-
 /**
  * Starting Server
  */
