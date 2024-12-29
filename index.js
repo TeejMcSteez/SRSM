@@ -91,6 +91,19 @@ const limiter = rateLimit({
     standardHeaders: 'draft-8', 
     legacyHeaders: false,
 });
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+});
+/**
+ * Sanitizes username and password input from the user using express-validator
+ */
+const loginSanitation = {
+    username: body('username').isString().isLength({min: 3}).trim().escape(),
+    password: body('password').isString().isLength({ min: 8 }).trim().escape(),
+};
 /**
  * Instantiation of Mongodb uri and options
  */
@@ -151,18 +164,37 @@ server.use(limiter);
  */
 const verifyToken = (req, res, next) => {
     const token = req.cookies.authToken;
+    const refreshToken = req.cookies.refToken;
 
-    if (!token) {
+    if (!refreshToken) {
+        logger.info("Missing refresh token, redirecting to login");
         return res.redirect('/login');
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_PUB, {algorithms: ['RS256'] });
-        req.user = decoded; // Adding user info to request object
-        next();
+        const decodedRefresh = jwt.verify(refreshToken, JWT_PUB, {algorithms: ['RS384']});
+
+        if (!token) {
+            logger.info("No access token generating new one")
+            const newToken = jwt.sign({subj: decodedRefresh.subj, tid: id.v4(), iat: Date.now()}, JWT_SECRET, {algorithm: 'RS256', expiresIn: '1h'});
+            res.cookie('authToken', newToken, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'strict',
+                maxAge: 60 * 60 * 1000,
+            });
+            req.user = decodedRefresh;
+            return next();
+        } else {
+            const decodedAcess = jwt.verify(token, JWT_PUB, {algorithms: ['RS256'] });
+            // Atttach the decoded access token user data to req object
+            req.user = decodedAcess; // Adding user info to request object
+            return next();
+        }
     } catch (error) {
         logger.error(`Token Verification Failed: ${error.message}`);
         res.clearCookie('authToken');
+        res.clearCookie('refToken');
         return res.redirect('/login');
     }
 };
@@ -172,13 +204,13 @@ const verifyToken = (req, res, next) => {
 /**
  * Unprotected login route with rate limiter
  */
-server.get("/login", limiter,(req, res) => {
+server.get("/login", loginLimiter,(req, res) => {
     res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 /**
  * On POST with user info verifies and signs (With req limiting to prevent DDOS)
  */
-server.post("/login", limiter, [body('username').isString().isLength({ min: 3}).trim().escape(), body('password').isString().isLength({ min: 8 }).trim()], async (req, res) => {
+server.post("/login", loginLimiter, loginSanitation, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -199,7 +231,16 @@ server.post("/login", limiter, [body('username').isString().isLength({ min: 3}).
                 httpOnly: true,
                 secure: true,
                 sameSite: 'strict',
-                maxAge: 60 * 60 * 1000,
+                maxAge: 60 * 60 * 1000, // 1hr 
+            });
+
+            const refreshToken = jwt.sign({subj: username, tid: id.v4(), iat: Date.now()}, JWT_SECRET, {algorithm: 'RS384', expiresIn: '12h'});
+
+            res.cookie('refToken', refreshToken, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'strict',
+                maxAge: 4.32e7, // 12h in ms
             });
 
             res.status(200).json({ success:true, redirect: '/'});
