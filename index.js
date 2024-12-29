@@ -1,5 +1,5 @@
 /**
- * @fileoverview Final Things to do for final deployment
+ * @fileoverview TODO
  * @description
  * This is the final TODO list for the secure remote web server (or atleast what I am capable of and slightly understand right now)
  * Mainly reminders I can check before deployment
@@ -100,10 +100,10 @@ const loginLimiter = rateLimit({
 /**
  * Sanitizes username and password input from the user using express-validator
  */
-const loginSanitation = {
-    username: body('username').isString().isLength({min: 3}).trim().escape(),
-    password: body('password').isString().isLength({ min: 8 }).trim().escape(),
-};
+const loginSanitation = [
+    body('username').isString().isLength({min: 3}).trim().escape(),
+    body('password').isString().isLength({ min: 8 }).trim().escape(),
+];
 /**
  * Instantiation of Mongodb uri and options
  */
@@ -132,19 +132,26 @@ const httpsServer = https.createServer({
 const helmetConfig = {
     contentSecurityPolicy: {
         directives: {
-            defaultSrc: ["'self"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdeliver.net"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "https://cdn.jsdelivr.net"],
             connectSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"], 
+            fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
             formAction: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"],
             upgradeInsecureRequests: [],
         },
     },
     strictTransportSecurity: {
         maxAge: 31536000, 
-        includeSubDomains: true
-    }
+        includeSubDomains: true,
+        preload: true,
+    },
+    referrerPolicy: {
+        policy: "no-referrer",
+    },
+    crossOriginEmbedderPolicy: true,
+    crossOriginResourcePolicy: {policy: "same-origin"},
 };
 /**
  * Specifying the middleware to use with server
@@ -336,9 +343,13 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
     res.json(loadAvg);
 });
 /**
- * Protected route near bottom of stacl
+ * Servs public directory with all files
  */
-server.use("/protected", verifyToken, express.static(path.join(__dirname, "public")));
+server.use(express.static(path.join(__dirname, "public")));
+/**
+ * Protected route near bottom of stack
+ */
+server.use("/protected", verifyToken, express.static(path.join(__dirname, "public", "protected")));
 /**
  * Global Error Handling
  */
