@@ -94,7 +94,7 @@ echo "JWT_PATH = $JWT_PATH" >> "$env_file"
 
 echo "Enter MongoDB Client Key Path (Example: ./src/mongo/client.pem). . ."
 read CLIENT_KEY_PATH
-echo "CLIENT_KEY_PATH = $CLIENT_KEY_PATH"
+echo "CLIENT_KEY_PATH = $CLIENT_KEY_PATH" >> "$env_file"
 
 echo "Enter MongoDB Certificate Path (Example: ./src/mongo/ca.crt). . ."
 read CA_PATH
