@@ -1,83 +1,108 @@
+"use strict";
+
 /**
- * Functions to read directories and files
+ * @fileoverview Functions to read directories and files.
  */
-const fs = require('node:fs');
-const path = require('node:path');
-const logger = require('pino')();
+
+const fs = require("node:fs");
+const path = require("node:path");
+const logger = require("pino")();
+
 /**
- * Takes array full of folder names and reads the contents on each folder
- * @param {Array} dir - directory full of folders
- * @returns {Array} - Returns array of read file names 
+ * Reads the contents of a directory (folder) and returns an array of filenames.
+ * @async
+ * @function readFolder
+ * @param {string} dir - A file path to the directory to read.
+ * @returns {Promise<Array<string>>} A promise that resolves to an array of filenames.
  */
-function readFolder(dir) { 
-    return new Promise((resolve, reject) => {
-        fs.readdir(dir, (err, buffer) => {
-            logger.info(`Readings files from ${dir}`);
-            if (err) {
-                reject(`Could not read files from ${dir}`);
-            } else {
-                resolve(buffer);
-            }
-        });
+function readFolder(dir) {
+  return new Promise((resolve, reject) => {
+    fs.readdir(dir, (err, buffer) => {
+      logger.info(`Reading files from: ${dir}`);
+      if (err) {
+        reject(new Error(`Could not read files from ${dir}`));
+      } else {
+        resolve(buffer);
+      }
     });
+  });
 }
+
 /**
- * Finds the temperature files within the temperature directory
- * @param {Object[]} dirContents - Files in the temperature directory
- * @returns {Object[]} - Returns object array of temperature files worth reading
+ * Finds the temperature files within the temperature directory.
+ *
+ * @function findTemperatureFiles
+ * @param {Array<string>} dirContents - An array of filenames in the temperature directory.
+ * @returns {Array.<{ LABEL: string }>} An array of objects, each containing a `LABEL` property.
  */
 function findTemperatureFiles(dirContents) {
-    const tempRegex = /temp\d+_\w+/; // Finds all files with temperature reading 
-    let matches = dirContents.filter(filename => tempRegex.test(filename)); // Reseach .filter()
+  const tempRegex = /temp\d+_\w+/; 
+  const matches = dirContents.filter((filename) => tempRegex.test(filename));
 
-    if (!matches) {
-        logger.info("There is no temperature information in this directory");
-    }
-    return matches.map(match => ({ // Research .map()
-        LABEL: match
-    }));// Returns object array of all labels in the dir
+  if (!matches || matches.length === 0) {
+    logger.info("There is no temperature information in this directory");
+  }
+
+  return matches.map((match) => ({ LABEL: match }));
 }
+
 /**
- * Find the motherboard files worth reading within the array
- * @param {Object[]} dirContents - Files in the motherboard directory
- * @returns {Object[]} - Returns useful information in the motherboard directory
+ * Finds motherboard files worth reading (voltages and fans) within the array.
+ *
+ * @function findMotherboardFiles
+ * @param {Array<string>} dirContents - An array of filenames in the motherboard directory.
+ * @returns {Array.<{ LABEL: string }>} An array of objects, each containing a `LABEL` property.
  */
 function findMotherboardFiles(dirContents) {
-    const voltageRegex = /in\d+_\w+/;
-    const fanRegex = /fan\d+_\w+/;
+  const voltageRegex = /in\d+_\w+/;
+  const fanRegex = /fan\d+_\w+/;
 
-    let voltMatches = dirContents.filter(filename => voltageRegex.test(filename));
-    let fanMatches = dirContents.filter(filename => fanRegex.test(filename));
+  const voltMatches = dirContents.filter((filename) => voltageRegex.test(filename));
+  const fanMatches = dirContents.filter((filename) => fanRegex.test(filename));
 
-    let matches = voltMatches.concat(fanMatches);
-    
-    if (!matches) {
-        logger.info("There are no temperatures to map in this directory");
-    } 
+  const matches = voltMatches.concat(fanMatches);
 
-    return matches.map(match => ({
-        LABEL: match 
-    }));
+  if (!matches || matches.length === 0) {
+    logger.info("There are no temperature or fan files to map in this directory");
+  }
+
+  return matches.map((match) => ({ LABEL: match }));
 }
+
 /**
- * Finds the values of all useful directories
- * @param {String} dir - Directory to read the file
- * @param {String} label - Name of the file to read
- * @returns {Object[Label: label, VALUE: value]} - Returns useful names and values to display
+ * @typedef {Object} LabeledValue
+ * @property {string} LABEL - The name of the file read
+ * @property {string} VALUE - The trimmed file data
+ */
+
+/**
+ * Reads the file corresponding to the given label in the specified directory 
+ * and returns the label/value pair.
+ *
+ * @async
+ * @function findValues
+ * @param {string} dir - A file path to the directory that contains the file.
+ * @param {string} label - Name of the file to read.
+ * @returns {Promise<LabeledValue>} Promise resolving to an object with label and value.
  */
 async function findValues(dir, label) {
-    return new Promise((resolve, reject) => {
-        const filePath = path.join(dir, label);
-
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) {
-                logger.info(`Could not read file ${label}`);
-                reject(err);
-            } else {
-                resolve({LABEL: label, VALUE: data.trim()});
-            }
-        });
+  const filePath = path.join(dir, label);
+  return new Promise((resolve, reject) => {
+    fs.readFile(filePath, "utf8", (err, data) => {
+      if (err) {
+        logger.info(`Could not read file: ${label}`);
+        reject(err);
+      } else {
+        // remove trailing spaces / newlines
+        resolve({ LABEL: label, VALUE: data.trim() });
+      }
     });
+  });
 }
 
-module.exports = {readFolder, findTemperatureFiles, findMotherboardFiles, findValues};
+module.exports = {
+  readFolder,
+  findTemperatureFiles,
+  findMotherboardFiles,
+  findValues,
+};
