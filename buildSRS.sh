@@ -1,6 +1,6 @@
 #!/bin/bash
-# hwmon
-hwmon = '/sys/class/hwmon'
+
+hwmon_root='/sys/class/hwmon'
 env_file='.env'
 
 echo 'Starting build . . .'
@@ -20,7 +20,7 @@ echo "NPM initialized installing packages"
 npm i express uuid argon2 jsonwebtoken dotenv express-http-to-https express-rate-limit pino helmet express-validator
 echo "Packages installed starting file detection . . ."
 
-for dir in "$hwmon"/*; do
+for dir in "$hwmon_root"/*; do
     if [[ ! -d "$dir" ]]; then 
         continue
     fi
@@ -127,4 +127,10 @@ cd ..
 
 echo -e "\nRepo pulled, build successful . . ."
 echo -e "\nHTTPS, JWT, and MongoDB credentials directories still needed to be populated in src! . . .\n"
-echo -e "\n!*!*!*!*!*!*!*!*!*!*!*!*\nDelete this build file!\n!*!*!*!*!*!*!*!*!*!*!*!"
+echo "Delete this build file"
+echo "Delete this build file"
+echo "Delete this build file"
+echo "Delete this build file"
+echo ""
+echo "Press enter to enter to exit . . ."
+read
