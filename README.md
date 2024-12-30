@@ -1,5 +1,7 @@
 # Secure Remote Web Sever #
-### Using MongoDB and JWT to authenticate user sessions and manage them for logins to view remote web server information. 
+Using MongoDB and JWT to authenticate user sessions and manage them for logins to view remote web server information. Mainly to learn security measures but also for fun! I liked making the project now I want to secure it.
+---
+**docs** directory contains API information for user made packages and classes made with jsdoc2md [JSDoc-to-Markdown Docs](https://www.npmjs.com/package/jsdoc-to-markdown)
 ---
 ## Packages:
 - Node/npm (Using path and fs built in packages)
