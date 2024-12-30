@@ -9,6 +9,7 @@ Using MongoDB and JWT to authenticate user sessions and manage them for logins t
 - UUID (for jsonwebtoken UID)
 - Argon2 (To compare hashed DB values)
 - jsonwebtoken (for session management)
+- cookie-parser
 - dotenv
 - Express-http-to-https (for http redirects) 
 - express-rate-limit (for rate limiting page requests)
