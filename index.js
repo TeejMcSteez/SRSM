@@ -165,7 +165,6 @@ const mimeConfig = {
         } else if (path.endsWith('.html')) {
             res.set('Content-Type', 'text/html; charset=UTF-8')
         }
-        res.set('X-Content-Type-Options', 'nosniff');
     }
 };
 /**
@@ -359,11 +358,18 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
 /**
  * Servs public directory with all files
  */
-server.use(express.static(path.join(__dirname, "public"), {mimeConfig, index: false}));
+server.use(express.static(
+    path.join(__dirname, "public"),
+    { mimeConfig, index: false }
+  ));  
 /**
  * Protected route near bottom of stack
  */
-server.use("/protected", verifyToken, express.static(path.join(__dirname, "public", "protected"), {mimeConfig, index: false}));
+server.use(
+    "/protected", 
+    verifyToken, 
+    express.static(path.join(__dirname, "public", "protected"), { mimeConfig, index: false })
+  );  
 /**
  * Global Error Handling
  */
