@@ -154,6 +154,21 @@ const helmetConfig = {
     crossOriginResourcePolicy: {policy: "same-origin"},
 };
 /**
+ * MIME checking config
+ */
+const mimeConfig = {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.js')) {
+            res.set('Content-Type', 'application/javascript; charset=UTF-8');
+        } else if (path.endsWith('.css')) {
+            res.set('Content-Type', 'text/css; charset=UTF-8');
+        } else if (path.endsWith('.html')) {
+            res.set('Content-Type', 'text/html; charset=UTF-8')
+        }
+        res.set('X-Content-Type-Options', 'nosniff');
+    }
+};
+/**
  * Specifying the middleware to use with server
  */
 server.use(helmet(helmetConfig));
@@ -344,11 +359,11 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
 /**
  * Servs public directory with all files
  */
-server.use(express.static(path.join(__dirname, "public")));
+server.use(express.static(path.join(__dirname, "public"), {mimeConfig, index: false}));
 /**
  * Protected route near bottom of stack
  */
-server.use("/protected", verifyToken, express.static(path.join(__dirname, "public", "protected")));
+server.use("/protected", verifyToken, express.static(path.join(__dirname, "public", "protected"), {mimeConfig, index: false}));
 /**
  * Global Error Handling
  */
