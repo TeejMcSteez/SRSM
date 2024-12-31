@@ -226,7 +226,7 @@ server.post("/login", loginLimiter, loginSanitation, async (req, res) => {
     try {
         await authService.connect();
 
-        const valid = await authService.validateUser(username, password).catch(error);
+        const valid = await authService.validateUser(username, password);
 
         if (valid.valid) {
             logger.info("User is validated");
