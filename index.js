@@ -229,7 +229,7 @@ server.post("/login", loginLimiter, loginSanitation, async (req, res) => {
         const valid = await authService.validateUser(username, password);
 
         if (valid.valid) {
-            logger.info("User is validated");
+            logger.info(`${username} is validated at ${Date.now()}`);
         
             const token = jwt.sign({subj: username, tid: id.v4(), iat: Date.now()}, JWT_SECRET, {algorithm: 'RS256', expiresIn: '1h'});
 
@@ -252,7 +252,7 @@ server.post("/login", loginLimiter, loginSanitation, async (req, res) => {
             res.status(200).json({ success:true, redirect: '/'});
 
         } else {
-            logger.info(`Reason: ${valid.reason}`);
+            logger.info(`Non-Validation Reason: ${valid.reason}`);
             res.status(401).json({ message: valid.message || "Invalid username or password" });
         }
     } catch (error) {

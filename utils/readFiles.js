@@ -18,7 +18,7 @@ const logger = require("pino")();
 function readFolder(dir) {
   return new Promise((resolve, reject) => {
     fs.readdir(dir, (err, buffer) => {
-      logger.info(`Reading files from: ${dir}`);
+      // logger.info(`Reading files from: ${dir}`); for debug
       if (err) {
         reject(new Error(`Could not read files from ${dir}`));
       } else {
