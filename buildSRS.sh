@@ -92,16 +92,16 @@ echo "Enter Json Web Token Certificate Path (Example: ./src/jwt/public.key) . . 
 read JWT_PATH
 echo "JWT_PATH = $JWT_PATH" >> "$env_file"
 
-echo "Enter MongoDB Client Key Path (Example: ./src/mongo/client.pem). . ."
+echo "Enter MongoDB Client Key Path, Use full path! (Example: /home/user/root/src/mongo/client.pem). . ."
 read CLIENT_KEY_PATH
 echo "CLIENT_KEY_PATH = $CLIENT_KEY_PATH" >> "$env_file"
 
-echo "Enter MongoDB Certificate Path (Example: ./src/mongo/ca.crt). . ."
+echo "Enter MongoDB Certificate Path, Use full path! (Example: /home/user/root/src/mongo/rootCA.crt). . ."
 read CA_PATH
 echo "CA_PATH = $CA_PATH" >> "$env_file"
 
 echo "Now entering MongoDB information for requests . . ."
-echo "Enter the MongoDB URI to send requests to (Example: mongodb://<hostname>:27017/?authMechanism=MONGODB-X509)"
+echo "Enter the MongoDB URI to send requests to (Example: mongodb://<hostname>:27017/?authMechanism=MONGODB-X509&authSource=%24external)"
 read MONGODB_URI
 echo "MONGODB_URI = $MONGODB_URI" >> "$env_file"
 
