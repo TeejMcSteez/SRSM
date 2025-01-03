@@ -1,4 +1,4 @@
-# Secure Remote Web Sever #
+# Secure Remote System Monitor #
 Uses Mongodb, JWT, and Node to authenticate users defined by the Mongodb admin for there systems remote system monitor. Monitors Motherboard RPM and voltage inputs as well as CPU Inputs and Maxes (Package and per core)
 ---
 **Only For UNIX/Linux node API and Hwmon do not exist/work on windows download [LibreHWMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases)**
