@@ -1,9 +1,11 @@
 # Secure Remote Web Sever #
-Using MongoDB and JWT to authenticate user sessions and manage them for logins to view remote web server information. Mainly to learn security measures but also for fun! I liked making the project now I want to secure it.
+Uses Mongodb, JWT, and Node to authenticate users defined by the Mongodb admin for there systems remote system monitor. Monitors Motherboard RPM and voltage inputs as well as CPU Inputs and Maxes (Package and per core)
 ---
-**docs** directory contains API information for user made packages and classes made with jsdoc2md [JSDoc-to-Markdown Docs](https://www.npmjs.com/package/jsdoc-to-markdown)
+**Only For UNIX/Linux node API and Hwmon do not exist/work on windows download [LibreHWMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases)**
 ---
-## Packages:
+**docs** directory contains API information for user made packages and classes made with jsdoc2md [JSDoc-to-Markdown Docs](https://www.npmjs.com/package/jsdoc-to-markdown) and therefore is not perfect and was automatically generated based of JSDoc comments in my code
+---
+## NPM Packages:
 - Node/npm (Using path and fs built in packages)
 - Express 
 - UUID (for jsonwebtoken UID)
@@ -25,7 +27,4 @@ Install with `npm i express uuid argon2 jsonwebtoken dotenv express-http-to-http
 - Certificate and private key path (for mongodb connection)
 - Private & public key path (for JWT verification)
 ---
-**It is not fully secure** there is still plenty of work to be done . . . but this is a start and man is it cool and fun
-# For me # 
-- When I get back to the server I need to remove database information and use hashed information for proper handling of non-plaintext information. 
-- Also, Need to restrict login information to read only as there is no need to write to the database yet and will prob use another role for that
+**It is not fully secure** there is still plenty of work to be done . . . but this is a start and man is it cool and fun and has some industry standard-ish security in it. 
