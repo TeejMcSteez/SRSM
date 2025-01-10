@@ -4,24 +4,12 @@
  * This is the final TODO list for the secure remote web server (or atleast what I am capable of and slightly understand right now)
  * Mainly reminders I can check before deployment
  * 
- * 1. Ensure proper helmet configuration
- * - @notice ensure that cdn, IP's used, and security configs are correct for the setup
- * - @notice think about adding CSRF protection as well (prob through helmet)
- * 
- * 2. Perms for sensitive information 
+ * 1. Perms for sensitive information 
  * - @notice Store certificates and keys with strict file permissions (e.g., chmod 600).
  * - @recommendation Provide a logout or session termination route to invalidate JWTs
  * on the client side.
  * 
- * 3. Add password hashing on the server
- * - @notice ensure that on the server and auth.js class there is password hashing and the passwords are not being stored in plain text
- * - @notice store passwords in hashed bcrypt or other library to check for upon validation
- * 
- * 4. Token refreshing (!Semi-Important!)
- * @notice when the user sits in the application and does not exit then refresh the JWT token after the timeout to ensure the user can 
- * keep there session and information and not have to re-log back in 
- * 
- * 5. Miscellaneous
+ * 2. Miscellaneous
  * @notice Add request login and logout functionality
  * @recommendation Add logout functionality to the index page I will prob not make a way to request a login as this is a personal
  * application and it is not needed  
@@ -46,7 +34,7 @@ const id = require('uuid');  // DOC: https://www.npmjs.com/package/uuid
 const jwt = require('jsonwebtoken'); // DOC: https://www.npmjs.com/package/jsonwebtoken
 const cookieParser = require('cookie-parser'); // DOC: https://www.npmjs.com/package/cookie-parser
 const https = require('https'); // DOC: https://nodejs.org/api/https.html
-const redirectToHTTPS = require('express-http-to-https').redirectToHTTPS(); // DOC: https://www.npmjs.com/package/express-http-to-https
+const redirectToHTTPS = require('node:https'); // DOC: https://www.npmjs.com/package/express-http-to-https
 const rateLimit = require('express-rate-limit'); // DOC: https://www.npmjs.com/package/express-rate-limit
 const logger = require('pino')(); // DOC: https://getpino.io/#/
 const helmet = require('helmet'); // DOC: https://www.npmjs.com/package/helmet?activeTab=readme
@@ -133,8 +121,8 @@ const helmetConfig = {
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "'unsafe-inline'" ,"https://cdn.jsdelivr.net"],
             connectSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "https:"], 
             fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
@@ -154,27 +142,19 @@ const helmetConfig = {
     crossOriginResourcePolicy: {policy: "same-origin"},
 };
 /**
- * MIME checking config
- */
-const mimeConfig = {
-    setHeaders: (res, path) => {
-        if (path.endsWith('.js')) {
-            res.set('Content-Type', 'application/javascript; charset=UTF-8');
-        } else if (path.endsWith('.css')) {
-            res.set('Content-Type', 'text/css; charset=UTF-8');
-        } else if (path.endsWith('.html')) {
-            res.set('Content-Type', 'text/html; charset=UTF-8')
-        }
-    }
-};
-/**
  * Specifying the middleware to use with server
  */
+// Core routes uses for security
 server.use(helmet(helmetConfig));
-server.use(redirectToHTTPS([HOSTNAME], [], 301));
+server.use(httpsRedirect({
+    port: PORT,
+    ignoreHosts: [],
+    redirectCode: 301
+}));
+server.use(limiter);
+// Non-core routes used for parsing
 server.use(express.json());
 server.use(cookieParser());
-server.use(limiter);
 /**
  * Middleware for verifying JWT Token
  * @param {Request} req 
@@ -360,15 +340,15 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
  */
 server.use(express.static(
     path.join(__dirname, "public"),
-    { mimeConfig, index: false }
-  ));  
+    {index: false}    
+));  
 /**
  * Protected route near bottom of stack
  */
 server.use(
     "/protected", 
     verifyToken, 
-    express.static(path.join(__dirname, "public", "protected"), { mimeConfig, index: false })
+    express.static(path.join(__dirname, "public", "protected"), {index: false })
   );  
 /**
  * Global Error Handling

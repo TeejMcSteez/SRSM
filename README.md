@@ -13,12 +13,12 @@ Uses Mongodb, JWT, and Node to authenticate users defined by the Mongodb admin f
 - jsonwebtoken (for session management)
 - cookie-parser
 - dotenv
-- Express-http-to-https (for http redirects) 
+- https (for http redirects) 
 - express-rate-limit (for rate limiting page requests)
 - Pino (Logging)
 - Helmet
 ---
-Install with `npm i express uuid argon2 jsonwebtoken dotenv express-http-to-https cookie-parser express-rate-limit pino helmet express-validator mongodb`
+Install with `npm i express uuid argon2 jsonwebtoken dotenv cookie-parser express-rate-limit pino helmet express-validator mongodb`
 ---
 ## The dotenv file will need to contain information for:
 - Hostname & Port (for express server listener)
