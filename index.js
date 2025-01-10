@@ -46,7 +46,7 @@ const id = require('uuid');  // DOC: https://www.npmjs.com/package/uuid
 const jwt = require('jsonwebtoken'); // DOC: https://www.npmjs.com/package/jsonwebtoken
 const cookieParser = require('cookie-parser'); // DOC: https://www.npmjs.com/package/cookie-parser
 const https = require('https'); // DOC: https://nodejs.org/api/https.html
-const redirectToHTTPS = require('express-http-to-https').redirectToHTTPS; // DOC: https://www.npmjs.com/package/express-http-to-https
+const redirectToHTTPS = require('express-http-to-https').redirectToHTTPS(); // DOC: https://www.npmjs.com/package/express-http-to-https
 const rateLimit = require('express-rate-limit'); // DOC: https://www.npmjs.com/package/express-rate-limit
 const logger = require('pino')(); // DOC: https://getpino.io/#/
 const helmet = require('helmet'); // DOC: https://www.npmjs.com/package/helmet?activeTab=readme
@@ -373,7 +373,16 @@ server.use(
 /**
  * Global Error Handling
  */
+
+// Check code to make sure its valid and then integrate on the server to add HTTP upgrades
+// Then I think that removes a need for a dependency
 server.use((req, res, next) => {
+    if (req.secure) {
+        next();
+    } else {
+        res.redirect(`https://`+req.host+req.url);
+    }
+    res.send(path.join(__dirname, 'public', 'redirects', '404.txt'));
     res.status(404).json({ error: 'Not Found'});
 });
 /**
@@ -381,6 +390,7 @@ server.use((req, res, next) => {
  */
 server.use((err, req, res, next) => {
     logger.error(err);
+    res.redirect(path.join(__dirname, 'public', 'redirects', 'err.txt'));
     res.status(500).json({ error: 'Internal Service Error'});
 });
 /**
