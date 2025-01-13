@@ -34,7 +34,6 @@ const id = require('uuid');  // DOC: https://www.npmjs.com/package/uuid
 const jwt = require('jsonwebtoken'); // DOC: https://www.npmjs.com/package/jsonwebtoken
 const cookieParser = require('cookie-parser'); // DOC: https://www.npmjs.com/package/cookie-parser
 const https = require('https'); // DOC: https://nodejs.org/api/https.html
-const redirectToHTTPS = require('node:https'); // DOC: https://www.npmjs.com/package/express-http-to-https
 const rateLimit = require('express-rate-limit'); // DOC: https://www.npmjs.com/package/express-rate-limit
 const logger = require('pino')(); // DOC: https://getpino.io/#/
 const helmet = require('helmet'); // DOC: https://www.npmjs.com/package/helmet?activeTab=readme
@@ -70,43 +69,7 @@ const JWT_PUB = fs.readFileSync(process.env.JWT_PATH);
 
 const HTTPS_KEY = fs.readFileSync(process.env.HTTPS_KEY_PATH);
 const HTTPS_CERT = fs.readFileSync(process.env.HTTPS_CERT_PATH);
-/**
- * Limiter Middlware
- */
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 900, // I have requests at 3 seconds intervals over 900 seconds will equate to 300 requests every 900 seconds (15 min), At 1 second interval will be 900 requests every 15 min. 
-    standardHeaders: 'draft-8', 
-    legacyHeaders: false,
-});
-const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 5,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-});
-/**
- * Sanitizes username and password input from the user using express-validator
- */
-const loginSanitation = [
-    body('username').isString().isLength({min: 3}).trim().escape(),
-    body('password').isString().isLength({ min: 8 }).trim().escape(),
-];
-/**
- * Instantiation of Mongodb uri and options
- */
-const uri = MONGO_URI; //27017 is the default port for mongodb
-const options = {
-    tls: true,
-    tlsCertificateKeyFile: CLIENT_KEY_PATH,
-    tlsCAFile: CA_PATH,
-    maxPoolSize: 10, 
-    serverSelectionTimeoutMS: 15000,
-    connectTimeoutMS: 10000,
-    socketTimeoutMS: 45000,    // Longer timeout for operations
-};
 
-const authService = new AuthService(uri, options);
 /**
  * HTTPS Config
  */
@@ -114,6 +77,7 @@ const httpsServer = https.createServer({
     key: HTTPS_KEY,
     cert: HTTPS_CERT
 }, server);
+
 /**
  * Helmet Config
  */
@@ -141,20 +105,62 @@ const helmetConfig = {
     crossOriginEmbedderPolicy: true,
     crossOriginResourcePolicy: {policy: "same-origin"},
 };
-/**
- * Specifying the middleware to use with server
- */
-// Core routes uses for security
+
+server.use((req, res, next) => {
+    if (req.secure) {
+        return next();
+    }
+
+    return res.redirect(`https://${req.get("host")}${req.url}`);
+});
+
 server.use(helmet(helmetConfig));
-server.use(httpsRedirect({
-    port: PORT,
-    ignoreHosts: [],
-    redirectCode: 301
-}));
+
+
+/**
+ * Limiter Middlware
+ */
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 900, // I have requests at 3 seconds intervals over 900 seconds will equate to 300 requests every 900 seconds (15 min), At 1 second interval will be 900 requests every 15 min. 
+    standardHeaders: 'draft-8', 
+    legacyHeaders: false,
+});
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+});
 server.use(limiter);
-// Non-core routes used for parsing
+/**
+ * Body parsing and cookies
+ */
 server.use(express.json());
 server.use(cookieParser());
+/**
+ * Sanitizes username and password input from the user using express-validator
+ */
+const loginSanitation = [
+    body('username').isString().isLength({min: 3}).trim().escape(),
+    body('password').isString().isLength({ min: 8 }).trim().escape(),
+];
+/**
+ * Instantiation of Mongodb uri and options
+ */
+const uri = MONGO_URI; //27017 is the default port for mongodb
+const options = {
+    tls: true,
+    tlsCertificateKeyFile: CLIENT_KEY_PATH,
+    tlsCAFile: CA_PATH,
+    maxPoolSize: 10, 
+    serverSelectionTimeoutMS: 15000,
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 45000,    // Longer timeout for operations
+};
+
+const authService = new AuthService(uri, options);
+
 /**
  * Middleware for verifying JWT Token
  * @param {Request} req 
@@ -335,47 +341,22 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
 
     res.json(loadAvg);
 });
-/**
- * Servs public directory with all files
- */
-server.use(express.static(
-    path.join(__dirname, "public"),
-    {index: false}    
-));  
-/**
- * Protected route near bottom of stack
- */
-server.use(
-    "/protected", 
-    verifyToken, 
-    express.static(path.join(__dirname, "public", "protected"), {index: false })
-  );  
-/**
- * Global Error Handling
- */
 
-// Check code to make sure its valid and then integrate on the server to add HTTP upgrades
-// Then I think that removes a need for a dependency
-server.use((req, res, next) => {
-    if (req.secure) {
-        next();
-    } else {
-        res.redirect(`https://`+req.host+req.url);
-    }
-    res.send(path.join(__dirname, 'public', 'redirects', '404.txt'));
-    res.status(404).json({ error: 'Not Found'});
+
+
+server.use(express.static(path.join(__dirname, "public"), {index: false}));
+
+server.use("/protected", verifyToken, express.static(path.join(__dirname, "public", "protected"), {index: false}));
+
+server.use ((res, res) => {
+    res.status(404).json({ error: "Not found"});
 });
-/**
- * Global Error Handling
- */
+
 server.use((err, req, res, next) => {
     logger.error(err);
-    res.redirect(path.join(__dirname, 'public', 'redirects', 'err.txt'));
-    res.status(500).json({ error: 'Internal Service Error'});
+    res.status(500).json({ error: "Internal Service Error"});
 });
-/**
- * Starting Server
- */
+
 httpsServer.listen(PORT, () => {
     logger.info(`Server running at https://${HOSTNAME}:${PORT}`);
 });
