@@ -78,34 +78,6 @@ const httpsServer = https.createServer({
     cert: HTTPS_CERT
 }, server);
 
-/**
- * Helmet Config
- */
-const helmetConfig = {
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "'unsafe-inline'" ,"https://cdn.jsdelivr.net"],
-            connectSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"], 
-            fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
-            formAction: ["'self'"],
-            upgradeInsecureRequests: [],
-        },
-    },
-    strictTransportSecurity: {
-        maxAge: 31536000, 
-        includeSubDomains: true,
-        preload: true,
-    },
-    referrerPolicy: {
-        policy: "no-referrer",
-    },
-    crossOriginEmbedderPolicy: true,
-    crossOriginResourcePolicy: {policy: "same-origin"},
-};
-
 server.use((req, res, next) => {
     if (req.secure) {
         return next();
@@ -114,7 +86,7 @@ server.use((req, res, next) => {
     return res.redirect(`https://${req.get("host")}${req.url}`);
 });
 
-server.use(helmet(helmetConfig));
+server.use(helmet());
 
 
 /**
@@ -342,13 +314,11 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
     res.json(loadAvg);
 });
 
-
-
 server.use(express.static(path.join(__dirname, "public"), {index: false}));
 
 server.use("/protected", verifyToken, express.static(path.join(__dirname, "public", "protected"), {index: false}));
 
-server.use ((res, res) => {
+server.use ((req, res) => {
     res.status(404).json({ error: "Not found"});
 });
 
