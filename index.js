@@ -86,7 +86,16 @@ server.use((req, res, next) => {
     return res.redirect(`https://${req.get("host")}${req.url}`);
 });
 
-server.use(helmet());
+server.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            // ...other directives...
+        },
+    },
+}));
 
 
 /**
@@ -314,7 +323,16 @@ server.get('/api/loadAvg', verifyToken, (req, res) => {
     res.json(loadAvg);
 });
 
-server.use(express.static(path.join(__dirname, "public"), {index: false}));
+server.use(express.static(path.join(__dirname, "public"), {
+    index: false,
+    setHeaders: (res, path) => {
+        if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        } else if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
 
 server.use("/protected", verifyToken, express.static(path.join(__dirname, "public", "protected"), {index: false}));
 
